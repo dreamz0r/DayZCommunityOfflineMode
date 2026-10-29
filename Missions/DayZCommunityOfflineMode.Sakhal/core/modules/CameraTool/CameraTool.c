@@ -385,26 +385,8 @@ class CameraTool extends Module
 	
 			if ( m_Target ) 
 			{
-				vector targetPos;
-				
-				if ( m_Target.IsInherited( SurvivorBase ) ) 
-				{
-					targetPos = GetTargetCenter();
-				}
-				else 
-				{
-					vector pos = m_Target.GetPosition();
-					pos[1] = GetGame().SurfaceY(pos[0], pos[2]);
-					
-					vector clippingInfo;
-					vector objectBBOX;
-					
-					m_Target.GetCollisionBox(objectBBOX);
-					
-					pos[1] = (pos[1] - objectBBOX[1] + clippingInfo[1] - objectBBOX[1]) + 1.5;
-					
-					targetPos = pos;
-				}
+                vector targetPos = GetTargetCenter();
+
 				
 				if ( m_OrbitalCam ) 
 				{
@@ -701,31 +683,14 @@ class CameraTool extends Module
 		return m_oCamera != NULL;
 	}
 	
-	vector GetTargetCenter() 
-	{
-		vector targetPosition;
-		
-		if ( m_Target.IsInherited( SurvivorBase )) 
-		{
-			targetPosition = m_Target.GetPosition();
-			targetPosition[1] = targetPosition[1] + 1.5;
-		}
-		else 
-		{
-			targetPosition = m_Target.GetPosition();
-			targetPosition[1] = GetGame().SurfaceY(targetPosition[0], targetPosition[2]);
-			
-			vector clippingInfo;
-			vector objectBBOX;
-			
-			m_Target.GetCollisionBox(objectBBOX);
-			
-			targetPosition[1] = (targetPosition[1] - objectBBOX[1] + clippingInfo[1] - objectBBOX[1]) + 1.5;
-		}
-				
-		return targetPosition;
-	}
-
+    vector GetTargetCenter()
+    {
+        if (!m_Target) return m_TargetPos;
+        if (m_Target.IsInherited(SurvivorBase)) return m_Target.GetPosition() + "0 1.5 0";
+        vector bounds[2];
+        if (!m_Target.GetCollisionBox(bounds)) return m_Target.GetPosition();
+        return m_Target.ModelToWorld((bounds[0] + bounds[1]) * 0.5);
+    }
 	Object GetTargetObject() 
 	{
 		return m_Target;

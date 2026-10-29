@@ -19,10 +19,7 @@ class GameMenu extends PopupMenu
 		m_gameScriptList.AddItem( "Spawn Sedan", 	 new Param1< string >( "SpawnSedan" ), 	   0 );
         m_gameScriptList.AddItem( "Spawn Gunter 2",  new Param1< string >( "SpawnGunter" ),    0 );
         m_gameScriptList.AddItem( "Spawn Sarka",     new Param1< string >( "SpawnSarka" ),     0 );
-//      m_gameScriptList.AddItem( "Spawn V3S",		 new Param1< string >( "SpawnV3S" ), 	   0 );
-//		m_gameScriptList.AddItem( "Spawn V3S_Cargo", new Param1< string >( "SpawnV3SCargo" ),  0 );
-//		m_gameScriptList.AddItem( "Spawn Bus", 		 new Param1< string >( "SpawnBus" ), 	   0 );
-//		m_gameScriptList.AddItem( "Spawn Van",	     new Param1< string >( "SpawnVan" ), 	   0 );
+        m_gameScriptList.AddItem("Spawn M3S", new Param1<string>("SpawnV3SCargo"), 0);
 
 		CheckBoxWidget checkBoxGodmode = CheckBoxWidget.Cast(GetGame().GetWorkspace().CreateWidgets( checkboxLayout, m_checkboxPanel ));
 		checkBoxGodmode.SetName( "Godmode" );
@@ -144,7 +141,7 @@ class GameMenu extends PopupMenu
 		TStringArray attArr = {
 		"HeadlightH7", "HeadlightH7",
 		"HatchbackWheel", "HatchbackWheel", "HatchbackWheel", "HatchbackWheel",
-		"CarBattery", "CarRadiator", "EngineBelt", "SparkPlug", "HatchbackHood",
+		"CarBattery", "CarRadiator", "SparkPlug", "HatchbackHood",
 		"HatchbackTrunk", "HatchbackDoors_Driver", "HatchbackDoors_CoDriver",
 		};
 
@@ -156,7 +153,7 @@ class GameMenu extends PopupMenu
 		TStringArray attArr = {
 		"HeadlightH7", "HeadlightH7",
 		"CivSedanWheel", "CivSedanWheel", "CivSedanWheel", "CivSedanWheel",
-		"CarBattery", "CarRadiator","EngineBelt", "SparkPlug","CivSedanHood",
+		"CarBattery", "CarRadiator","SparkPlug","CivSedanHood",
 		"CivSedanTrunk", "CivSedanDoors_Driver","CivSedanDoors_CoDriver",
 		"CivSedanDoors_BackLeft", "CivSedanDoors_BackRight",
 		};
@@ -170,7 +167,7 @@ class GameMenu extends PopupMenu
 		"HeadlightH7", "HeadlightH7", "CarBattery", "CarRadiator", "SparkPlug", "Hatchback_02_Door_1_1",
 		"Hatchback_02_Door_1_2", "Hatchback_02_Door_2_1","Hatchback_02_Door_2_2",
 		"Hatchback_02_Trunk", "Hatchback_02_Hood", "Hatchback_02_Wheel", "Hatchback_02_Wheel",
-		"Hatchback_02_Wheel", "Hatchback_02_Wheel", "CivSedanDoors_BackRight",
+		"Hatchback_02_Wheel", "Hatchback_02_Wheel",
 		};
 
 		SpawnVehicle( "Hatchback_02", attArr );
@@ -180,7 +177,7 @@ class GameMenu extends PopupMenu
 	{
 		TStringArray attArr = {
 		"HeadlightH7", "HeadlightH7", "CarBattery", "CarRadiator", "SparkPlug", "Sedan_02_Hood",
-		"Sedan_02_Hood","Sedan_02_Trunk","Sedan_02_Door_1_1",
+		"Sedan_02_Trunk","Sedan_02_Door_1_1",
 		"Sedan_02_Door_2_1","Sedan_02_Door_1_2","Sedan_02_Door_2_2","Sedan_02_Wheel",
 		"Sedan_02_Wheel","Sedan_02_Wheel","Sedan_02_Wheel",
 		};
@@ -188,61 +185,32 @@ class GameMenu extends PopupMenu
 		SpawnVehicle( "Sedan_02", attArr );
 	}
 
-	void SpawnV3SCargo() 
-	{
-		TStringArray attArr = {
-		"V3SWheel","V3SWheel", "V3SWheel","V3SWheel", "V3SWheelDouble","V3SWheelDouble", "V3SWheelDouble","V3SWheelDouble",
-		"TruckBattery","TruckRadiator","EngineBelt","GlowPlug","V3SHood",
-		"V3SDoors_Driver_Orange","V3SDoors_CoDriver_Orange",
-		};
-
-		SpawnVehicle( "V3S_Cargo_Blue", attArr );
-	}
-
-	void SpawnV3S() 
-	{
-		TStringArray attArr = {
-		"V3SWheel","V3SWheel", "V3SWheel","V3SWheel", "V3SWheelDouble","V3SWheelDouble", "V3SWheelDouble","V3SWheelDouble",
-		"TruckBattery","TruckRadiator","EngineBelt","GlowPlug","V3SHood",
-		"V3SDoors_Driver_Orange","V3SDoors_CoDriver_Orange",
-		};
-
-		SpawnVehicle( "V3S_Chassis_Blue", attArr );
-	}
-
-	void SpawnBus() 
-	{
-		TStringArray attArr = {
-		"TransitBusWheel","TransitBusWheel", "TransitBusWheelDouble","TransitBusWheelDouble",
-		"TruckBattery","TruckRadiator","EngineBelt","GlowPlug","BusHood",
-		"BusDoors_Left","BusDoors_Right", "BusDoors_Left","BusDoors_Right", "BusDoors_Left","BusDoors_Right",
-		};
-
-		SpawnVehicle( "TransitBus", attArr );
-	}
-
-	void SpawnVan() 
-	{
-		TStringArray attArr = {
-			"CivVanWheel","CivVanWheel","CivVanWheel","CivVanWheel",
-			"CarBattery","CarRadiator","EngineBelt","SparkPlug","CivVanTrunk",
-			"CivVanDoors_Driver","CivVanDoors_CoDriver","CivVanDoors_BackRight",
-			"CivVanDoors_TrumpDown", "CivVanDoors_TrumpUp",
-		};
-
-		SpawnVehicle( "CivilianVan", attArr );
-	}
-
+    void SpawnV3SCargo()
+    {
+        TStringArray parts = {
+            "Truck_01_Wheel", "Truck_01_Wheel", "Truck_01_WheelDouble", "Truck_01_WheelDouble", "Truck_01_WheelDouble", "Truck_01_WheelDouble",
+            "TruckBattery", "Truck_01_Door_1_1", "Truck_01_Door_2_1", "Truck_01_Hood", "HeadlightH7", "HeadlightH7"
+        };
+        SpawnVehicle("Truck_01_Covered", parts);
+    }
 	void SpawnVehicle( string vehicle, TStringArray attachments) 
 	{
 		Car oCar = Car.Cast( GetGame().CreateObject( vehicle, COM_GetCursorPos(), false, false ) );
 
-		for (int j = 0; j < attachments.Count(); j++) { oCar.GetInventory().CreateAttachment( attachments.Get(j) ); }
+		if (!oCar) { COM_Message("Could not spawn vehicle: " + vehicle); return; }
+        for (int j = 0; j < attachments.Count(); j++)
+        {
+            EntityAI attachment = oCar.GetInventory().CreateAttachment(attachments.Get(j));
+            if (!attachment) { Print("[COM] Invalid vehicle attachment " + attachments.Get(j) + " for " + vehicle); continue; }
+            attachment.SetHealth01("", "", 1);
+            ItemBase item = ItemBase.Cast(attachment);
+            if (item && item.HasEnergyManager()) item.GetCompEM().SetEnergy(item.GetCompEM().GetEnergyMax());
+        }
 
-		oCar.Fill( CarFluid.FUEL, 1000 );
-		oCar.Fill( CarFluid.OIL, 1000 );
-		oCar.Fill( CarFluid.BRAKE, 1000 );
-		oCar.Fill( CarFluid.COOLANT, 1000 );
+		oCar.Fill( CarFluid.FUEL, oCar.GetFluidCapacity(CarFluid.FUEL) );
+		oCar.Fill( CarFluid.OIL, oCar.GetFluidCapacity(CarFluid.OIL) );
+		oCar.Fill( CarFluid.BRAKE, oCar.GetFluidCapacity(CarFluid.BRAKE) );
+		oCar.Fill( CarFluid.COOLANT, oCar.GetFluidCapacity(CarFluid.COOLANT) );
 
 		//oCar.EngineStart();
 		//oCar.SwitchLights();

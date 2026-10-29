@@ -21,6 +21,7 @@ class COMKeyBinds extends Module
 	
 	override void onUpdate( float timeslice )
 	{
+        if (!COM_GetPB()) return;
 	    UpdateAutoWalk();
 
 	    UpdateGodMode();
@@ -96,7 +97,9 @@ class COMKeyBinds extends Module
 //			return;
 //		}
 		
-        vector hitPos = COM_GetCursorPos();
+        if (!COM_GetPB()) return;
+        vector hitPos;
+        if (!COM_TryGetCursorPos(hitPos)) { COM_Message("No surface under the cursor."); return; }
 
         float distance = vector.Distance( COM_GetPB().GetPosition(), hitPos );
 
@@ -120,38 +123,28 @@ class COMKeyBinds extends Module
         }
     }
 
-    void Reload()
+    void RefillWeapon(Weapon_Base weapon, bool chamber = true)
     {
-        auto wpn = COM_GetPB().GetHumanInventory().GetEntityInHands();
-
-        if( wpn )
+        if (!weapon) return;
+        Magazine magazine = weapon.GetMagazine(weapon.GetCurrentMuzzle());
+        if (magazine) magazine.ServerSetAmmoCount(magazine.GetAmmoMax());
+        if (weapon.HasInternalMagazine(-1)) weapon.FillInnerMagazine("", WeaponWithAmmoFlags.NONE);
+        if (chamber)
         {
-            auto magAtt = wpn.GetAttachmentByConfigTypeName( "DefaultMagazine" );
-
-            if( magAtt )
-            {
-                auto mag = Magazine.Cast( magAtt );
-
-                if( mag && mag.IsMagazine() )
-                {
-                    mag.LocalSetAmmoMax();
-                }
-            }
-
-            auto suppAtt = wpn.GetAttachmentByConfigTypeName( "ItemSuppressor" );
-
-            if( suppAtt )
-            {
-                auto supp = suppAtt;
-
-                if( supp )
-                {
-                    supp.SetHealth( supp.GetMaxHealth( "", "" ) );
-                }
-            }
+            string ammoType;
+            if (magazine) ammoType = magazine.GetType();
+            weapon.FillChamber(ammoType, WeaponWithAmmoFlags.CHAMBER);
         }
+        EntityAI suppressor = weapon.GetAttachmentByConfigTypeName("ItemSuppressor");
+        if (suppressor) suppressor.SetHealth01("", "", 1);
     }
 
+    void Reload()
+    {
+        PlayerBase player = COM_GetPB();
+        if (!player) return;
+        RefillWeapon(Weapon_Base.Cast(player.GetHumanInventory().GetEntityInHands()));
+    }
     void SpawnZ() 
     {
         if( COM_CTRL() )
@@ -160,7 +153,7 @@ class COMKeyBinds extends Module
         }
         else if( COM_SHIFT() )
         {
-            GetGame().CreateObject( COM_GetRandomChildFromBaseClass( "cfgVehicles", "AnimalBase" ), COM_GetCursorPos(), false, true );
+            GetGame().CreateObject( COM_GetRandomChildFromBaseClass( "cfgVehicles", "AnimalBase", 2 ), COM_GetCursorPos(), false, true );
         }
         else
         {
@@ -184,6 +177,7 @@ class COMKeyBinds extends Module
 
     void AutoRun()
     {
+        if (!COM_GetPB()) return;
         if( m_nAutoWalkMode && !COM_SHIFT() && !COM_CTRL() )
         {
             m_nAutoWalkMode = 0;
@@ -209,6 +203,16 @@ class COMKeyBinds extends Module
 
     void UpdateAutoWalk()
     {
+        PlayerBase player = COM_GetPB();
+        if (!player) return;
+        CameraTool camera = CameraTool.Cast(COM_GetModuleManager().GetModule(CameraTool));
+        if (camera && camera.IsUsingCamera()) return;
+        if (m_nAutoWalkMode > 0 && EditorMenu.Cast(GetGame().GetUIManager().GetMenu()))
+        {
+            player.GetInputController().OverrideMovementSpeed(true, 0);
+            player.GetInputController().OverrideMovementAngle(false, 0);
+            return;
+        }
         if( m_nAutoWalkMode > 0 )
         {
             if( m_nAutoWalkMode == 1 )
@@ -246,24 +250,7 @@ class COMKeyBinds extends Module
 //            COM_GetPB().GetStatStomachEnergy().Set(300);
             COM_GetPB().GetStatHeatComfort().Set(0);
 
-            EntityAI oWeapon = COM_GetPB().GetHumanInventory().GetEntityInHands();
-
-            if( oWeapon )
-            {
-                Magazine oMag = Magazine.Cast(oWeapon.GetAttachmentByConfigTypeName( "DefaultMagazine" ));
-
-                if( oMag && oMag.IsMagazine() )
-                {
-                    oMag.LocalSetAmmoMax();
-                }
-
-                Object oSupressor = ( Object ) oWeapon.GetAttachmentByConfigTypeName( "SuppressorBase" );
-
-                if( oSupressor )
-                {
-                    oSupressor.SetHealth( oSupressor.GetMaxHealth( "", "" ) );
-                }
-            }
+            RefillWeapon(Weapon_Base.Cast(COM_GetPB().GetHumanInventory().GetEntityInHands()), false);
         }
     }
 }

@@ -11,6 +11,9 @@ class ObjectMenu extends PopupMenu
 
 	private ItemPreviewWidget m_item_widget;
 	protected EntityAI previewItem;
+    protected bool m_PreviewVisible;
+    protected string m_PendingPreviewClass;
+    protected string m_PreviewClass;
 	private int m_characterRotationX;
 	private int m_characterRotationY; // Borrowed from inspectmenu
 	private int m_characterScaleDelta;
@@ -28,14 +31,62 @@ class ObjectMenu extends PopupMenu
 	    "ItemOptics",
     };
 
-	void ~ObjectMenu()
-	{
-		if ( previewItem ) 
-		{
-			GetGame().ObjectDelete( previewItem );
-		}
-	}
+    void ~ObjectMenu()
+    {
+        ClearPreview();
+    }
 
+    // Only inventory objects belong in ItemPreviewWidget. Creating characters,
+    // AI, effects or world structures here runs their native world initialization.
+    static bool IsPreviewSupported(string className)
+    {
+        if (className == "") return false;
+        if (GetGame().IsKindOf(className, "Man") || GetGame().IsKindOf(className, "DZ_LightAI")) return false;
+        return GetGame().IsKindOf(className, "Inventory_Base") || GetGame().ConfigIsExisting(CFG_WEAPONSPATH + " " + className) || GetGame().ConfigIsExisting(CFG_MAGAZINESPATH + " " + className);
+    }
+
+    void ClearPreview()
+    {
+        if (!GetGame()) return;
+        GetGame().GetCallQueue(CALL_CATEGORY_GUI).Remove(this.LoadPendingPreview);
+        GetGame().GetDragQueue().RemoveCalls(this);
+        m_PendingPreviewClass = "";
+        m_PreviewClass = "";
+        if (m_item_widget) m_item_widget.SetItem(NULL);
+        if (previewItem) GetGame().ObjectDelete(previewItem);
+        previewItem = NULL;
+    }
+
+    void LoadPendingPreview()
+    {
+        string className = m_PendingPreviewClass;
+        m_PendingPreviewClass = "";
+        if (!m_PreviewVisible || className != GetCurrentSelection() || !IsPreviewSupported(className)) return;
+        if (m_excludeBroken.Find(className) != -1) return;
+        if (!m_item_widget)
+        {
+            Widget panel = layoutRoot.FindAnyWidget("preview_pnl");
+            if (!panel) return;
+            m_item_widget = ItemPreviewWidget.Cast(GetGame().GetWorkspace().CreateWidget(ItemPreviewWidgetTypeID, 0, 0, 1, 1, WidgetFlags.VISIBLE, ARGB(255, 255, 255, 255), 10, panel));
+        }
+        if (!m_item_widget) return;
+        previewItem = EntityAI.Cast(GetGame().CreateObjectEx(className, vector.Zero, ECE_LOCAL | ECE_NOLIFETIME | ECE_NOPERSISTENCY_WORLD | ECE_NOPERSISTENCY_CHAR));
+        if (!previewItem) return;
+        previewItem.DisableSimulation(true);
+        previewItem.SetAllowDamage(false);
+        dBodyDestroy(previewItem);
+        m_PreviewClass = className;
+        m_characterOrientation = vector.Zero;
+        m_item_widget.SetItem(previewItem);
+        m_item_widget.SetModelPosition("0 0 0.5");
+        m_item_widget.SetModelOrientation(m_characterOrientation);
+        m_item_widget.SetSize(1.5, 1.5);
+        m_item_widget.SetPos(-0.225, -0.225);
+        Magazine magazine = Magazine.Cast(previewItem);
+        ItemBase item = ItemBase.Cast(previewItem);
+        if (magazine) m_QuantityItem.SetText(magazine.GetAmmoMax().ToString());
+        else if (item) m_QuantityItem.SetText(item.GetQuantityMax().ToString());
+    }
 	override void Init()
 	{
 		m_classList = TextListboxWidget.Cast( layoutRoot.FindAnyWidget( "classlist" ) );
@@ -52,20 +103,20 @@ class ObjectMenu extends PopupMenu
 	}
 
 	override void OnShow()
-	{
-		UpdateList( "All" );
-	}
+    {
+        m_PreviewVisible = true;
+        UpdateList("All");
+    }
 
-	override void OnHide() 
-	{
-		if ( previewItem ) 
-		{
-			GetGame().ObjectDelete( previewItem );
-		}
-	}
+    override void OnHide()
+    {
+        m_PreviewVisible = false;
+        ClearPreview();
+    }
 
 	override bool OnChange( Widget w, int x, int y, bool finished )
     {
+        if (w == m_editBox) { ClearPreview(); m_classList.SelectRow(-1); return true; }
         if ( w == m_SearchBox )
         {
             UpdateList( "All" );
@@ -95,6 +146,7 @@ class ObjectMenu extends PopupMenu
 
     override bool OnClick( Widget w, int x, int y, int button )
     {
+        if (!w) return false;
         if (w.GetName().Contains("btn_filter"))
         {
             string buttonName = w.GetName();
@@ -106,6 +158,7 @@ class ObjectMenu extends PopupMenu
         if ((w != m_btnSpawnCursor) && (w != m_btnSpawnGround) && (w != m_btnSpawnInventory))
             return true;
 
+        if (!COM_GetPB()) return true;
         string strSelection = GetCurrentSelection();
         if (!strSelection)
             strSelection = GetEditBoxInput();
@@ -116,7 +169,7 @@ class ObjectMenu extends PopupMenu
         if( m_excludeBroken.Find(strSelection) != -1 ) 
             return true;
         
-        strSelection.ToLower();
+        // Keep the configured class name intact for modded types and diagnostics.
 
         ObjectEditor obEditor = ObjectEditor.Cast(COM_GetModuleManager().GetModule(ObjectEditor));
 
@@ -145,12 +198,15 @@ class ObjectMenu extends PopupMenu
             ObjectInfoMenu.listBox.AddItem(spawned.GetType(), spawned, 0);
         }
 
+        if (!spawned) { COM_Message("Could not spawn into inventory: " + strSelection); return true; }
         ItemBase spawnedItem = ItemBase.Cast(spawned);
         if (spawnedItem)
         {
             float quantity01 = 1;
-            if ( spawnedItem.GetQuantityMax() > 0 )
-                quantity01 = m_QuantityItem.GetText().ToFloat() / spawnedItem.GetQuantityMax();
+            float maximum = spawnedItem.GetQuantityMax();
+            Magazine spawnedMagazine = Magazine.Cast(spawnedItem);
+            if (spawnedMagazine) maximum = spawnedMagazine.GetAmmoMax();
+            if (maximum > 0) quantity01 = Math.Clamp(m_QuantityItem.GetText().ToFloat(), 0, maximum) / maximum;
             float health = m_StateItem.GetText().ToFloat();
             SetupSpawnedItem(spawnedItem, health, quantity01);
         }
@@ -158,66 +214,25 @@ class ObjectMenu extends PopupMenu
         return true;
     }
 
-    override bool OnItemSelected( Widget w, int x, int y, int row, int column, int oldRow, int oldColumn )
+    override bool OnItemSelected(Widget w, int x, int y, int row, int column, int oldRow, int oldColumn)
     {
-        if ( w == m_classList )
-        {
-            string strSelection = GetCurrentSelection();
-            m_characterOrientation = vector.Zero;
-
-            if ( !m_item_widget )
-            {
-                Widget preview_panel = layoutRoot.FindAnyWidget("preview_pnl");
-
-                if ( preview_panel )
-                {
-                    float width;
-                    float height;
-                    preview_panel.GetSize(width, height);
-
-                    m_item_widget = ItemPreviewWidget.Cast( GetGame().GetWorkspace().CreateWidget(ItemPreviewWidgetTypeID, 0, 0, 1, 1, WidgetFlags.VISIBLE, ARGB(255, 255, 255, 255), 10, preview_panel) );
-                }
-            }
-
-            if ( previewItem ) GetGame().ObjectDelete( previewItem );
-
-            if( m_excludeBroken.Find( strSelection ) != -1 ) return false;
-
-            Print(strSelection);
-
-            previewItem = EntityAI.Cast(GetGame().CreateObject( strSelection, vector.Zero, false ));
-
-            if( !previewItem ) return false;
-
-            m_item_widget.SetItem( previewItem );
-            m_item_widget.SetModelPosition( Vector(0,0,0.5) );
-            m_item_widget.SetModelOrientation( m_characterOrientation );
-
-            float itemx, itemy;
-            m_item_widget.GetPos(itemx, itemy);
-
-            m_item_widget.SetSize( 1.5, 1.5 );
-
-            // align to center
-            m_item_widget.SetPos( -0.225, -0.225 );
-
-            // Calculate and Set QuantityMax on text box in quantity_items
-            if (previewItem.IsInherited(Magazine))
-            {
-                m_QuantityItem.SetText(Magazine.Cast(previewItem).GetAmmoCount().ToString());
-            }
-            else if (previewItem.IsInherited(ItemBase))
-            {
-                m_QuantityItem.SetText(ItemBase.Cast(previewItem).GetQuantityMax().ToString());
-            }
-        }
-
+        if (w != m_classList) return false;
+        string className = GetCurrentSelection();
+        if (className != "" && (className == m_PendingPreviewClass || className == m_PreviewClass)) return true;
+        ClearPreview();
+        float maximum = 1;
+        if (GetGame().ConfigIsExisting(CFG_MAGAZINESPATH + " " + className)) maximum = GetGame().ConfigGetFloat(CFG_MAGAZINESPATH + " " + className + " count");
+        else if (GetGame().ConfigIsExisting(CFG_VEHICLESPATH + " " + className + " varQuantityMax")) maximum = GetGame().ConfigGetFloat(CFG_VEHICLESPATH + " " + className + " varQuantityMax");
+        m_QuantityItem.SetText(maximum.ToString());
+        if (!m_PreviewVisible || !IsPreviewSupported(className) || m_excludeBroken.Find(className) != -1) return true;
+        m_PendingPreviewClass = className;
+        // Coalesce scrolling/key-repeat events; only the final settled row is loaded.
+        GetGame().GetCallQueue(CALL_CATEGORY_GUI).CallLater(this.LoadPendingPreview, 250, false);
         return true;
     }
-
 	override bool OnMouseButtonDown( Widget w, int x, int y, int button ) 
 	{
-		if (w == m_item_widget)
+		if (m_PreviewVisible && previewItem && m_item_widget && w == m_item_widget)
 		{
 			GetGame().GetDragQueue().Call(this, "UpdateRotation");
 			GetMousePos(m_characterRotationX, m_characterRotationY);
@@ -228,7 +243,7 @@ class ObjectMenu extends PopupMenu
 
 	override bool OnMouseWheel( Widget w, int x, int y, int wheel ) 
 	{
-		if ( w == m_item_widget )
+		if (m_PreviewVisible && previewItem && m_item_widget && w == m_item_widget)
 		{
 			GetGame().GetDragQueue().Call(this, "UpdateScale");
 			m_characterScaleDelta = wheel ;
@@ -238,7 +253,8 @@ class ObjectMenu extends PopupMenu
 
 	void UpdateScale(int mouse_x, int mouse_y, int wheel, bool is_dragging) // Borrowed from inspect menu
 	{
-		float w, h, x, y;		
+		if (!m_PreviewVisible || !previewItem || !m_item_widget) return;
+        float w, h, x, y;
 		m_item_widget.GetPos(x, y);
 		m_item_widget.GetSize(w,h);
 		w = w + ( m_characterScaleDelta / 4);
@@ -258,7 +274,8 @@ class ObjectMenu extends PopupMenu
 
 	void UpdateRotation(int mouse_x, int mouse_y, bool is_dragging) // Borrowed from inspect menu
 	{
-		vector o = m_characterOrientation;
+        if (!m_PreviewVisible || !previewItem || !m_item_widget) return;
+        vector o = m_characterOrientation;
 		o[0] = o[0] + (m_characterRotationY - mouse_y);
 		o[1] = o[1] - (m_characterRotationX - mouse_x);
 		
@@ -272,6 +289,7 @@ class ObjectMenu extends PopupMenu
 
     void UpdateList( string classFilter ) // All default
     {
+        ClearPreview();
         m_classList.ClearItems();
 
 		TStringArray configs = new TStringArray;
@@ -297,7 +315,7 @@ class ObjectMenu extends PopupMenu
 
 				int scope = g_Game.ConfigGetInt( strConfigPath + " " + strName + " scope" );
 
-				if ( scope == 0 )
+				if ( scope < 2 )
 				{
 					continue;
 				}
@@ -321,7 +339,7 @@ class ObjectMenu extends PopupMenu
 
 	string GetCurrentSelection()
 	{
-		if ( m_classList.GetSelectedRow() != -1 )
+		if (m_classList && m_classList.GetSelectedRow() >= 0 && m_classList.GetSelectedRow() < m_classList.GetNumItems())
 		{
 			string result;
 			m_classList.GetItemText( m_classList.GetSelectedRow(), 0, result );

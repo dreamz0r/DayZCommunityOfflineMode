@@ -22,7 +22,31 @@ Use a root deploy launcher to copy the latest mission source into the configured
 
 Character persistency remains disabled as shipped; its unfinished module is not covered by these fixes. Do not enable it by uncommenting its include.
 
-Validation: Chernarus and Livonia compiled in the native 1.30.164200 client. Both initialized the offline economy and spawned a player. The diagnostic executable has an additional vanilla PluginInventoryDebug null reference; the regular client passed both Chernarus and Livonia startups without script errors. Interactive editor, camera, export, weather and inventory behavior still require hands-on testing. The four-map source tree has 236 resolvable include references. Diagnostic test copies and logs are stored under D:\Codex\OfflineMode-1.30.
+Validation: Chernarus and Livonia compiled in the native 1.30.164200 client. Both initialized the offline economy and spawned a player. The diagnostic executable has an additional vanilla PluginInventoryDebug null reference; the regular client passed both Chernarus and Livonia startups without script errors. Interactive editor, camera, export, weather and inventory behavior still require hands-on testing. The four-map source tree has 240 resolvable include references. Diagnostic test copies and logs are stored under D:\Codex\OfflineMode-1.30.
+## Script audit against the refreshed DayZ sources
+
+On 2026-10-29 the active mission scripts were compared with the newly extracted vanilla scripts on `P:` and checked in the installed DayZ 1.30.164200 client. Fixes were applied consistently to all four maps:
+
+- Camera targeting uses the required two-vector collision bounds and an actual model-space center; autofocus handles raycast misses.
+- Cursor misses retain the player's position, and teleporting into empty sky is refused.
+- Scene save/load uses the current JSON API with explicit failure handling. Missing saves, unavailable objects and empty selections are handled safely. The existing save path and data fields are retained.
+- Object previews are local and cleaned up when hidden. Only inventory items, weapons and magazines are previewed after a 250 ms pause; survivors, animals, effects and world objects remain selectable for spawning without being instantiated while browsing. Pending previews and drag callbacks are cancelled when the window closes or selection/search changes. The spawner honors magazine ammunition quantities, uses magazine capacity for its preview value, and clears list selection when a classname is entered manually. The list shows public classes.
+- Reloading handles attached and internal magazines, chambering, and compatible suppressor repair. Autorun respects the admin menu and free camera; player-dependent updates wait for a player.
+- Active vehicle presets no longer request removed/mismatched/duplicate parts; batteries are charged and fluids use each vehicle's configured capacity.
+- Weather date controls handle leap years. Overcast changes no longer add five minutes to the clock. Camera guide widgets and update callbacks are cleaned up when their window closes.
+
+The starting kit, four-map selection, spawn candidates, external mod configuration and source-only delivery remain unchanged. The optional legacy modules were subsequently repaired as described below.
+
+Validation: **39 native regression assertions passed**, covering scene round-trip/error handling, camera centering, magazine quantities, weapon refills, UI cleanup, dates, sky raycasts and all five active vehicle presets. The deliberate malformed-JSON case produces an expected engine decoder log; there were no unexpected script errors. All 248 checked include references resolve; 136 XML and 14 JSON files parse. Native regression execution used the Chernarus mission; the common fixes were checked for consistency across all four source trees. Full driving, shooting and hands-on visual testing were not performed.
+
+### Legacy-module fixes
+
+The optional character-save code has also been updated for DayZ 1.30. It uses the current stomach API, checked JSON loading/saving, cargo locations including rotation, explicit attachment slots, and safe handling of missing items. Saves retain consumable quantities, battery energy, canteen liquids, quickbar assignments, hand-held items, chambered rounds and internal magazines. Versionless older character saves remain readable; their obsolete aggregate stomach fields have no direct modern equivalent and are ignored. Character persistence remains disabled by default, preserving the normal military-kit startup.
+
+The character menu no longer depends on removed pause-menu classes or unsafe update callbacks. The legacy scene library now retains its object data, reads every file from `$profile:SceneManager\Scenes`, supports checked save/load and explicit activation, and cleans up spawned objects. Its object-scene format is separate from the regular editor's existing save file. Obsolete bus, van and V3S chassis stubs were removed; the vehicle menu now offers the current M3S cargo truck with valid parts.
+
+Validation: 168 focused assertions passed in the regular 1.30.164200 client with the optional persistence classes compiled. These cover complete kit save/load, item locations, quickbar, consumables, hands, chamber/internal-magazine rounds, scene loading/activation/cleanup, truck parts and character-menu open/close. The final run reported no script errors or VM exceptions. Common sources are synchronized across all four maps; native execution used Chernarus. Full driving/shooting, manual character-creation workflows and multiplayer have not been tested. Test helpers, logs and recovery copies are under `D:\Codex\OfflineMode-LegacyFixes-2026-10-29`.
+
 ## Four deployable offline maps
 
 These launch the existing single-player Community Offline Mode, with its local economy and admin tools.
@@ -38,7 +62,7 @@ All four share `LauncherSettings.json` and the external `Mods` folder. Each miss
 
 Sakhal and Nasdara use vanilla terrain economy data from the locally extracted DayZ 1.30 sources (`DZ\worlds\<terrain>\ce`). Their offline player spawns use the terrain's fresh-spawn candidates, filter sea/pond locations, and set the position to terrain height. Sakhal starts on February 1 and Nasdara on April 30 at noon, matching the vanilla mission season. The GUI visibility, Escape-close, camera lock, and mod-folder fixes are included in all four missions.
 
-Validation on 2026-10-29: Sakhal and Nasdara both compiled and loaded in the regular DayZ 1.30.164200 client with no script errors. Their local economies initialized, players spawned on land at terrain height, and the admin GUI opened with aiming blocked. All four launcher previews passed; 236 include references, 136 XML files, and 14 JSON files passed source checks. Full gameplay and every spawn candidate have not been exercised.
+Validation on 2026-10-29: Sakhal and Nasdara both compiled and loaded in the regular DayZ 1.30.164200 client with no script errors. Their local economies initialized, players spawned on land at terrain height, and the admin GUI opened with aiming blocked. All four launcher previews passed; 240 include references, 136 XML files, and 14 JSON files passed source checks. Full gameplay and every spawn candidate have not been exercised.
 
 Vanilla mission data is by Bohemia Interactive; see [DayZ Central Economy](https://github.com/BohemiaInteractive/DayZ-Central-Economy) and its [ADPL-SA license](https://www.bohemia.net/community/licenses/arma-and-dayz-public-license-share-alike-adpl-sa).
 

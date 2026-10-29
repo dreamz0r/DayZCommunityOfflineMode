@@ -1,14 +1,12 @@
 class InventoryLoad : ItemLoad
 {
-    static override EntityAI Load(EntityAI oParent, PlayerBase oPlayer, ItemData oData) {
-        if (oData.NumAttachments > 0)
-        {
-            for (int iAttachment = 0; iAttachment < oData.NumAttachments; iAttachment++) 
-            {
-                FixAndLoadAttachment(oParent, oPlayer, oData.ItemAttachments[iAttachment]);
-            }
-        }
-
-        return NULL;
+    static override EntityAI Load(EntityAI oParent, PlayerBase oPlayer, ItemData oData)
+    {
+        if (!oParent || !oPlayer || !oData) return NULL;
+        foreach (ItemData attachment : oData.ItemAttachments)
+            if (attachment) FixAndLoadAttachment(oParent, oPlayer, attachment);
+        foreach (ItemData item : oData.Items)
+            if (item) ItemLoad.Load(oParent, oPlayer, item);
+        return oParent;
     }
 }

@@ -1,5 +1,15 @@
+class COMStomachData
+{
+    string ClassName;
+    float Amount;
+    int SavedFoodStage;
+    int Agents;
+    float Temperature;
+}
 class CharacterData
 {
+    int Version;
+    ref array<ref COMStomachData> Stomach = new array<ref COMStomachData>;
     string SModel;
 
     vector VecPosition;

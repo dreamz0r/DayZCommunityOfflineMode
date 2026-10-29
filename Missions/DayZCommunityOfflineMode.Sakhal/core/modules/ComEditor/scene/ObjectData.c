@@ -4,7 +4,7 @@ class ObjectData
 	vector position;
 	vector orientation;
 
-	void ObjectData( string name, vector pos, vector ori )
+	void ObjectData(string name = "", vector pos = "0 0 0", vector ori = "0 0 0")
 	{
 		classname = name;
 		position = pos;

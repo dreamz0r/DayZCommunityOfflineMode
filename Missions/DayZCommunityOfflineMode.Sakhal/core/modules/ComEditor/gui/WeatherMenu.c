@@ -106,6 +106,18 @@ class WeatherMenu extends PopupMenu
 		return false;
 	}
 
+    static int GetDaysInMonth(int year, int month)
+    {
+        if (month < 1 || month > 12) return 0;
+        int days = m_DaysInMonth[month - 1];
+        if (month == 2 && (year % 400 == 0 || (year % 4 == 0 && year % 100 != 0))) days++;
+        return days;
+    }
+
+    static int GetDaysInYear(int year)
+    {
+        return 337 + GetDaysInMonth(year, 2);
+    }
 	override bool OnChange( Widget w, int x, int y, bool finished )
 	{
 		if ( w == m_SldStartTime )
@@ -125,12 +137,12 @@ class WeatherMenu extends PopupMenu
 		else if ( w == m_SldStartDay )
 		{
 			float slider_value_start_day = m_SldStartDay.GetCurrent();
-			float start_day_f = slider_value_start_day * 3.64 + 1;
+			float start_day_f = slider_value_start_day * (GetDaysInYear(m_CurrYear) - 1) * 0.01 + 1;
 			int start_day = start_day_f;
 
 			for ( int i = 0; i < 12; i++ )
 			{
-				int days = m_DaysInMonth[i];
+				int days = GetDaysInMonth(m_CurrYear, i + 1);
 				if ( start_day <= days )
 				{
 					m_CurrMonth = i+1;
@@ -155,7 +167,6 @@ class WeatherMenu extends PopupMenu
 
 			m_CurrOvercast = m_SldOvercast.GetCurrent() * 0.01;
 			GetGame().GetWeather().GetOvercast().Set( m_CurrOvercast, 0, 0 );
-			GetGame().GetWorld().SetDate( m_CurrYear, m_CurrMonth, m_CurrDay, m_CurrHour, m_CurrMinute+5 );
 
 			return true;
 		}
@@ -262,10 +273,10 @@ class WeatherMenu extends PopupMenu
 		while ( month_tmp > 1 )
 		{
 			month_tmp--;
-			start_day += m_DaysInMonth[month_tmp - 1];
+			start_day += GetDaysInMonth(year, month_tmp);
 		}
 
-		m_SldStartDay.SetCurrent( (start_day - 1) / 3.64 );
+		m_SldStartDay.SetCurrent( (start_day - 1) * 100.0 / (GetDaysInYear(year) - 1) );
 
 		UpdateSliderStartDay( month, day );
 

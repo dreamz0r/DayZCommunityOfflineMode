@@ -21,11 +21,11 @@ class WelcomeMenu extends UIScriptedMenu
 		string infotext;
 		
 		infotext = "Enjoy the DayZ Community Sandbox Mode.";
-		infotext += "\n \n \nThe current game build is still ALPHA!";
+		infotext += "\n \n \nOffline testing for Chernarus, Livonia, Sakhal and Nasdara.";
 		infotext += "\nCrashes and bugs can occur.";
-		infotext += "\nNot all features are implemented or working yet!";
+		infotext += "\nPress Y for admin tools. Escape closes tool windows.";
 		infotext += "\nProvide feedback on the game via feedback.dayz.com";
-		infotext += "\n \n \nCreated and Managed by Arkensor, DannyDog and Jacob_Mango.";
+		infotext += "\n \n \nBased on Community Offline Mode by Arkensor, DannyDog and Jacob_Mango.";
 		infotext += "\n \n \nContributions from:";
 		infotext += "\n DuhOneZ, Watchman, n8m4re, wriley and gallexme.";
 

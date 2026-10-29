@@ -1,3 +1,10 @@
+class COMCartridgeData
+{
+    int SavedMuzzle;
+    bool InChamber;
+    float Damage;
+    string SavedBulletType;
+}
 int COM_DEFAULT_TYPE = 0;
 int COM_CARGO_TYPE = 1;
 int COM_ATTACHMENT_TYPE = 2;
@@ -11,7 +18,17 @@ class ItemData
     int X;
     int Y;
 
-    int Quantity;
+    ref array<ref COMCartridgeData> Cartridges = new array<ref COMCartridgeData>;
+    int CurrentMuzzle;
+    int Version;
+    float Quantity;
+    int CargoIndex;
+    bool Flipped;
+    int AttachmentSlot = -1;
+    float Energy;
+    int LiquidType;
+    float Temperature;
+    int SavedFoodStage = -1;
     float ItemWet;
     float ItemHealth;
 

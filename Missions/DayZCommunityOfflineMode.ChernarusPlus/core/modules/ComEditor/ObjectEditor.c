@@ -3,6 +3,7 @@ class ObjectEditor extends Module
 	protected bool m_ObjectEditorActive = false;
 	protected bool m_IsDragging;
 	Object m_SelectedObject;
+    protected string m_SceneFile = "$saves:COMObjectEditorSave.json";
 	Object building;
 
 	// protected ref Scene active_Scene;
@@ -12,7 +13,7 @@ class ObjectEditor extends Module
 	string BASE_SCENE_DIR = BASE_COM_DIR + "\\Scenes";
 
 	ref SceneManager sceneManager;
-	SceneData currentSceneData;
+	SceneInfo currentSceneData;
 
 	void ObjectEditor()
 	{
@@ -36,6 +37,7 @@ class ObjectEditor extends Module
 	void SpawnObject( string type, vector position, vector orientation )
 	{
 	    auto obj = GetGame().CreateObject( type, position );
+	    if (!obj) { COM_Message("Could not spawn: " + type); return; }
 	    obj.SetPosition( position );
 	    obj.SetOrientation( orientation );
 	    obj.SetOrientation( obj.GetOrientation() );
@@ -48,7 +50,7 @@ class ObjectEditor extends Module
 
 	void addObject( Object trackedObject )
 	{
-		m_Objects.Insert( trackedObject );
+		if (trackedObject && m_Objects.Find(trackedObject) == -1) m_Objects.Insert( trackedObject );
 	}
 
 	override void Init()
@@ -138,120 +140,44 @@ class ObjectEditor extends Module
 		COM_Message( "Copied to clipboard" );
 	}
 
-	void SaveScene()
-	{
-
-		// loot spots
-		// pumpkins = civilian
-		// apple = medical
-		// orange = industral
-		// plum = military
-
-/*
-		SceneInfo sceneData = new SceneInfo("Test");
-		// vector position = COM_GetPB().WorldToModel(); // origin point
-
-		foreach( Object m_object : m_Objects )
-		{
-			vector pos = COM_GetPB().WorldToModel( m_object.GetPosition() );
-
-			if ( m_object.GetType() != "Pumpkin" )
-			{
-				sceneData.AddObject( m_object, pos ); // add objects
-			}
-			// then add loot spots
-		}
-
-		foreach( Object m_objectt : m_Objects )
-		{
-			vector poss = COM_GetPB().WorldToModel( m_object.GetPosition() );
-
-			if ( m_object.GetType() == "Pumpkin" )
-			{
-				sceneData.AddObject( m_objectt, poss ); // add objects
-			}
-			// then add loot spots
-		}
-
-		JsonFileLoader< SceneInfo >.JsonSaveFile( SCENE_DATA + "\\" + sceneData.GetName() + ".json", sceneData );
-
-		*/
-
-		/*
-		string toCopy = "";
-
-		foreach( Object m_object : m_Objects )
-		{
-			if ( m_object.GetType() == "Pot" ) //save loot positions
-			{
-				vector modelPos = m_SelectedObject.WorldToModel( m_object.GetPosition() );
-
-				toCopy = toCopy + "{" + modelPos[0] + "," + modelPos[1] + "," + modelPos[2] + "},";
-			}
-		}
-		toCopy = m_SelectedObject.GetType() + "[] = {" + toCopy + "};";
-
-		GetGame().CopyToClipboard( toCopy );
-		m_Objects.Clear();
-		*/
-
-        /*
-		ref SceneSaveST scene = new SceneSaveST();
-		scene.name = "latest";
-
-		foreach( Object m_object : m_Objects )
-		{
-			ref Param objectParam = new Param3<string, vector, vector>( m_object.GetType(), m_object.GetPosition(), m_object.GetOrientation() );
-			scene.m_SceneObjects.Insert( objectParam );
-		}
-		*/
-
-		auto exportFile = OpenFile( "$saves:COMObjectEditorSave.json", FileMode.WRITE );
-
-        if( !exportFile )
+    void SaveScene()
+    {
+        SceneSaveST scene = new SceneSaveST();
+        scene.name = "latest";
+        foreach (Object object : m_Objects)
         {
-            COM_Message( "Error writing COMObjectEditorSave.json. Current changes could not NOT be saved!!!" );
+            if (!object) continue;
+            scene.m_SceneObjects.Insert(new Param3<string, vector, vector>(object.GetType(), object.GetPosition(), object.GetOrientation()));
+        }
+        string error;
+        if (!JsonFileLoader<SceneSaveST>.SaveFile(m_SceneFile, scene, error))
+        {
+            COM_Message("Could not save scene: " + error);
             return;
         }
+        COM_Message("Saved objects to " + m_SceneFile);
+    }
 
-        FPrint( exportFile, "{\"name\":\"latest\",\"m_SceneObjects\":[" );
-
-        auto serial = new JsonSerializer;
-        string file_content;
-        foreach(int nObject, Object object : m_Objects )
+    void LoadScene()
+    {
+        if (!FileExist(m_SceneFile)) return;
+        SceneSaveST scene;
+        string error;
+        if (!JsonFileLoader<SceneSaveST>.LoadFile(m_SceneFile, scene, error) || !scene || !scene.m_SceneObjects)
         {
-            auto objectParam = new Param3<string, vector, vector>( object.GetType(), object.GetPosition(), object.GetOrientation() );
-            serial.WriteToString( objectParam, false, file_content );
-            FPrint( exportFile, file_content );
-            if( nObject < m_Objects.Count() - 1 ) FPrint( exportFile, "," );
+            COM_Message("Could not load scene: " + error);
+            return;
         }
-
-        FPrint( exportFile, "]}" );
-
-        CloseFile( exportFile );
-
-		COM_Message( "Saved objects to COMObjectEditorSave.json (User/Documents/DayZ)." );
-//		JsonFileLoader< SceneSaveST >.JsonSaveFile( BASE_SCENE_DIR + "\\" + "latest.json", scene );
-//		JsonFileLoader< SceneSaveST >.JsonSaveFile( "$saves:COMObjectEditorSave.json", scene );
-	}
-
-	void LoadScene()
-	{
-		SceneSaveST scene = new SceneSaveST();
-
-//		JsonFileLoader<SceneSaveST>.JsonLoadFile( BASE_SCENE_DIR + "\\" + "latest.json", scene );
-		JsonFileLoader<SceneSaveST>.JsonLoadFile( "$saves:COMObjectEditorSave.json", scene );
-
-		foreach( auto param : scene.m_SceneObjects )
-		{
-			Object object = GetGame().CreateObject( param.param1, param.param2, false, false );
-			object.SetOrientation( param.param3 );
-			COM_ForceTargetCollisionUpdate( object );
-
-			m_Objects.Insert( object );
-		}
-	}
-
+        foreach (Param3<string, vector, vector> entry : scene.m_SceneObjects)
+        {
+            if (!entry) continue;
+            Object object = GetGame().CreateObjectEx(entry.param1, entry.param2, ECE_CREATEPHYSICS | ECE_KEEPHEIGHT);
+            if (!object) { COM_Message("Skipped unavailable scene object: " + entry.param1); continue; }
+            object.SetOrientation(entry.param3);
+            COM_ForceTargetCollisionUpdate(object);
+            addObject(object);
+        }
+    }
 	void EditorState( bool state )
 	{
 		if ( m_ObjectEditorActive == state )
@@ -292,12 +218,12 @@ class ObjectEditor extends Module
 
 	void SelectObject( Object object )
 	{
-		if ( ( ( m_SelectedObject != NULL ) && ( m_SelectedObject == object ) ) || object.IsInherited( PlayerBase ) )
+		if ( ( ( m_SelectedObject != NULL ) && ( m_SelectedObject == object ) ) || !object || object.IsInherited( PlayerBase ) )
 		{
 			return;
 		}
 
-		if ( COM_CTRL() ) 
+		if ( COM_CTRL() && m_SelectedObject ) 
 		{
 			vector modelPos = m_SelectedObject.WorldToModel( object.GetPosition() );
 
@@ -342,11 +268,8 @@ class ObjectEditor extends Module
 
 			vector contact_pos;
 			vector contact_dir;
-			vector bbox;
 
 			int contact_component;
-
-			m_SelectedObject.GetCollisionBox( bbox );
 
 			if ( DayZPhysics.RaycastRV( from, to, contact_pos, contact_dir, contact_component, NULL, m_SelectedObject, COM_GetPB(), false, false ) )
 			{
@@ -396,7 +319,7 @@ class ObjectEditor extends Module
 //
 //				m_SelectedObject.SetOrientation( ori );
 //			}
-//			else if ( COM_CTRL() )
+//			else if ( COM_CTRL() && m_SelectedObject )
 //			{
 //				ori [ 0 ] = ori [ 0 ] + value;
 //
@@ -444,8 +367,9 @@ class ObjectEditor extends Module
 			for ( int newObject = 0; ( ( newObject < objects.Count() ) && !selected ); ++newObject )
 			{
 				Object obj = objects.Get( newObject );
+                if (!obj || obj.IsInherited(PlayerBase)) continue;
 
-				if ( COM_CTRL() ) 
+				if ( COM_CTRL() && m_SelectedObject ) 
 				{
 
 					vector modelPos = obj.WorldToModel( m_SelectedObject.GetPosition() );

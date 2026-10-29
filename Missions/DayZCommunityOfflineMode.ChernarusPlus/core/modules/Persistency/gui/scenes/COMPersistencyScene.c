@@ -39,12 +39,14 @@ class COMPersistencyScene: Managed
 	void ~COMPersistencyScene()
 	{
 		PersistencyPrint("COMPersistencyScene::~COMPersistencyScene");
+        GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).Remove(this.ResetPosition);
+        GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).Remove(this.LoadFromSave);
 		if ( m_DemoUnit )
 		{
 			GetGame().ObjectDelete(m_DemoUnit);
 		}
 
-		CameraTool ct = COM_GetModuleManager().GetModuleByName("CameraTool");
+		CameraTool ct = CameraTool.Cast(COM_GetModuleManager().GetModuleByName("CameraTool"));
 
 		if ( ct )
 		{
@@ -68,7 +70,10 @@ class COMPersistencyScene: Managed
 		string root_path = "cfgCharacterScenes " + worldName;
 
 		int count = g_Game.ConfigGetChildrenCount(root_path);
-		int index = Math.RandomInt(0, count - 1);
+		if (count == 0) root_path = "cfgCharacterScenes ChernarusPlus";
+        count = g_Game.ConfigGetChildrenCount(root_path);
+        if (count == 0) return;
+        int index = Math.RandomInt(0, count);
 		string childName;
 		g_Game.ConfigGetChildName(root_path, index, childName);
 	
@@ -95,10 +100,12 @@ class COMPersistencyScene: Managed
 		m_CameraTool = CameraTool.Cast( possibleModule );
 
 		if ( !m_CameraTool ) {
-			PersistencyPrint( "WTF, the camera doesn't exist shitbag! You dun fucked up in here." );
+			Print("[COM] Character camera is unavailable.");
+            return;
 		}
 
 		m_CameraTool.EnableCamera( true );
+        if (!m_CameraTool.GetCamera()) return;
 
 		m_CameraTool.GetCamera().SetPosition( COM_SnapToGround( position ) );
 
@@ -219,7 +226,7 @@ class COMPersistencyScene: Managed
 		Class.CastTo(entity, g_Game.CreateObject(type, "0 2000 0", true));
 		if (entity)
 		{
-			m_DemoUnit.LocalTakeEntityAsAttachmentEx(entity, slot);
+			m_DemoUnit.LocalTakeEntityToTargetAttachmentEx(m_DemoUnit, entity, slot);
 		}
 	}
 
@@ -270,7 +277,6 @@ class COMPersistencyScene: Managed
 
 			PluginLifespan module_lifespan;
 			Class.CastTo(module_lifespan, PluginLifespan.Cast( GetPlugin( PluginLifespan ) ));
-			module_lifespan.UpdateLifespanParam( m_DemoUnit, lvalue, true );
 		}
 
 		ResetIntroCamera();
@@ -338,7 +344,7 @@ class COMPersistencyScene: Managed
 	{
 		// m_CameraTool.UpdateCamera();
 		
-		m_CameraTool.GetCamera().LookAt(m_Target);
+		if (m_CameraTool && m_CameraTool.GetCamera()) m_CameraTool.GetCamera().LookAt(m_Target);
 
 		if (m_DemoUnit && m_RotatingCharacter)
 		{

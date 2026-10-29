@@ -17,10 +17,12 @@ class CameraSettings extends PopupMenu
 	private TextWidget m_TxtCamExp;
 
 	private ButtonWidget m_btn_rot;
-	private ButtonWidget m_btn_phi
+	private ButtonWidget m_btn_phi;
 
 	static Widget CAMERA_ROT;
 	static Widget CAMERA_PHI;
+    private Widget m_RotationGuide;
+    private Widget m_PitchGuide;
 
 	private SliderWidget m_SldChromX;
 	private SliderWidget m_SldChromY;
@@ -35,8 +37,13 @@ class CameraSettings extends PopupMenu
 	}	
 	
 	void ~CameraSettings()
-	{
-	}
+    {
+        if (GetGame()) GetGame().GetUpdateQueue(CALL_CATEGORY_GUI).Remove(this.Update);
+        if (CAMERA_ROT == m_RotationGuide) CAMERA_ROT = NULL;
+        if (CAMERA_PHI == m_PitchGuide) CAMERA_PHI = NULL;
+        delete m_RotationGuide;
+        delete m_PitchGuide;
+    }
 	
 	override void Init()
     {
@@ -63,8 +70,10 @@ class CameraSettings extends PopupMenu
 		m_TxtChromX = TextWidget.Cast(layoutRoot.FindAnyWidget("camera_slider_chrom_value_x"));
 		m_TxtChromY = TextWidget.Cast(layoutRoot.FindAnyWidget("camera_slider_chrom_value_y"));
 
-		CAMERA_ROT = GetGame().GetWorkspace().CreateWidgets( "$CurrentDir:missions\\DayZCommunityOfflineMode.Enoch\\core\\modules\\CameraTool\\gui\\layouts\\CameraROT.layout" );
-		CAMERA_PHI = GetGame().GetWorkspace().CreateWidgets( "$CurrentDir:missions\\DayZCommunityOfflineMode.Enoch\\core\\modules\\CameraTool\\gui\\layouts\\CameraPHI.layout" );
+		m_RotationGuide = GetGame().GetWorkspace().CreateWidgets( "$CurrentDir:missions\\DayZCommunityOfflineMode.Enoch\\core\\modules\\CameraTool\\gui\\layouts\\CameraROT.layout" );
+		m_PitchGuide = GetGame().GetWorkspace().CreateWidgets( "$CurrentDir:missions\\DayZCommunityOfflineMode.Enoch\\core\\modules\\CameraTool\\gui\\layouts\\CameraPHI.layout" );
+        CAMERA_ROT = m_RotationGuide;
+        CAMERA_PHI = m_PitchGuide;
 	}
 	
 	
@@ -81,6 +90,8 @@ class CameraSettings extends PopupMenu
     {
         super.OnHide();
         GetGame().GetUpdateQueue(CALL_CATEGORY_GUI).Remove( this.Update );
+        if (CAMERA_ROT) CAMERA_ROT.Show(false);
+        if (CAMERA_PHI) CAMERA_PHI.Show(false);
 
     }
 	
@@ -195,6 +206,7 @@ class CameraSettings extends PopupMenu
 
 	override bool OnChange( Widget w, int x, int y, bool finished )
 	{
+		if (!w) return false;
 		Material chromAber = GetGame().GetWorld().GetMaterial("graphics/materials/postprocess/chromaber");
 		Material matColors = GetGame().GetWorld().GetMaterial("graphics/materials/postprocess/glow");
 		Material rotBlur = GetGame().GetWorld().GetMaterial("graphics/materials/postprocess/rotblur");
@@ -227,6 +239,8 @@ class CameraSettings extends PopupMenu
 			case 
 		}
 		*/
+
+		if (!changeSlider) return false;
 
 		if ( w == m_SldCamBlur ) 
 		{

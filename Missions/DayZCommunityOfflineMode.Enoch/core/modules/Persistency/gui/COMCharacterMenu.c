@@ -73,7 +73,6 @@ class COMCharacterMenu extends UIScriptedMenu
     void ~COMCharacterMenu()
     {
 		PersistencyPrint("COMCharacterMenu::~COMCharacterMenu");
-		GetGame().GetUpdateQueue(CALL_CATEGORY_SYSTEM).Remove( this.UpdateInterval );
 
 		delete m_CharGenderList;
 		delete m_CharPersonalityMaleList;
@@ -359,7 +358,7 @@ class COMCharacterMenu extends UIScriptedMenu
 
 		string characterName = m_PlayerName.GetText();
 
-		if ( characterName == "" )
+		if (!CharacterSave.IsValidName(characterName))
 		{
 			GetGame().GetUIManager().ShowDialog("FAILURE", "You didn't give a character name!", 0, DBT_OK, DBB_OK, DMT_WARNING, NULL);
 			return;
@@ -469,6 +468,12 @@ class COMCharacterMenu extends UIScriptedMenu
 
 	bool needsFileLoading = true;
     
+    override void Update(float timeslice)
+    {
+        super.Update(timeslice);
+        UpdateInterval();
+    }
+
     void UpdateInterval()
 	{
 		if ( needsFileLoading )
@@ -504,19 +509,17 @@ class COMCharacterMenu extends UIScriptedMenu
 
 		if ( COM_GetPB() && !GetGame().IsMultiplayer() )
 		{
-			GetGame().SelectPlayer( NULL, NULL );
+			// Keep the current player selected until loading succeeds.
 		}
 
 		g_Game.SetKeyboardHandle( this );
 
 		needsFileLoading = true;
 
-        GetGame().GetInput().ChangeGameFocus( 1, INPUT_DEVICE_MOUSE );
         GetGame().GetUIManager().ShowUICursor( true );
 
         COM_GetMission().GetHud().Show(false);
 
-		GetGame().GetUpdateQueue(CALL_CATEGORY_SYSTEM).Insert(this.UpdateInterval);
 
 		PersistencyPrint( "Finished COMCharacterMenu::OnShow" );
 	}
@@ -532,9 +535,8 @@ class COMCharacterMenu extends UIScriptedMenu
 	{
 		PersistencyPrint("COMCharacterMenu::OnHide");
         GetGame().GetUIManager().ShowUICursor( false );
-        GetGame().GetInput().ResetGameFocus( INPUT_DEVICE_MOUSE );
+        if (COM_GetMission().GetHud()) COM_GetMission().GetHud().Show(true);
         
-		GetGame().GetUpdateQueue(CALL_CATEGORY_SYSTEM).Remove(this.UpdateInterval);
 
 
 		super.OnHide();
@@ -545,7 +547,6 @@ class COMCharacterMenu extends UIScriptedMenu
 		PersistencyPrint( "COMCharacterMenu::TemporaryFix_ReloadCharacterMenu" );
 		GetGame().GetCallQueue(CALL_CATEGORY_GAMEPLAY).CallLater(m_oPersistencyModule.TemporaryFix_ReloadCharacterMenu, 100, false);
 
-		GetGame().GetInput().ChangeGameFocus( 1, INPUT_DEVICE_MOUSE );
         GetGame().GetUIManager().ShowUICursor( true );
 
         COM_GetMission().GetHud().Show(false);
@@ -732,11 +733,11 @@ class COMCharacterMenu extends UIScriptedMenu
 		string extenstion = ".json";
 		int strLength = name.Length();
 
-		if ( name == extenstion ) return false;
+		if (name.Length() <= 5 || name.Substring(name.Length() - 5, 5) != ".json") return false;
 
         if ( (attributes & FileAttr.DIRECTORY ) ) return false;
 
-        if ( name == "" ) return false;
+        if (!CharacterSave.IsValidName(name)) return false;
 
 		PersistencyPrint( "Loaded" );
 
@@ -749,7 +750,7 @@ class COMCharacterMenu extends UIScriptedMenu
 
         if ( ! (attributes & FileAttr.DIRECTORY ) ) return false;
 
-        if ( name == "" ) return false;
+        if (!CharacterSave.IsValidName(name)) return false;
 
         return true;
     }
@@ -780,7 +781,8 @@ class COMCharacterMenu extends UIScriptedMenu
 				}
 			}
 		}
-	}
+	        CloseFindFile(oFileHandle);
+    }
 
 	void SetCharacterList()
 	{
@@ -818,7 +820,8 @@ class COMCharacterMenu extends UIScriptedMenu
 		} else {
 			m_CanLoadSave = true;
 		}
-	}
+	        CloseFindFile(oFileHandle);
+    }
 
 	string GetCharacter()
 	{

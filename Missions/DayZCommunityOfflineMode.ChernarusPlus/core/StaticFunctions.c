@@ -148,28 +148,32 @@ static vector COM_GetPointerPos()
     vector hitPos;
     vector hitNormal;
     int hitComponentIndex;
-    DayZPhysics.RaycastRV(rayStart, rayEnd, hitPos, hitNormal, hitComponentIndex, NULL, NULL, COM_GetPB());
+    if (!DayZPhysics.RaycastRV(rayStart, rayEnd, hitPos, hitNormal, hitComponentIndex, NULL, NULL, COM_GetPB()))
+        return COM_GetPB().GetPosition();
 
     return hitPos;
+}
+
+static bool COM_TryGetCursorPos(out vector hitPos)
+{
+    hitPos = vector.Zero;
+    PlayerBase player = COM_GetPB();
+    if (!player) return false;
+    vector from = GetGame().GetCurrentCameraPosition();
+    vector to = from + GetGame().GetCurrentCameraDirection() * 10000;
+    vector normal;
+    int component;
+    return DayZPhysics.RaycastRV(from, to, hitPos, normal, component, NULL, NULL, player);
 }
 
 static vector COM_GetCursorPos()
 {
-    if ( !COM_GetPB() )
-    {
-        return "0 0 0";
-    }
-
-    vector rayStart = GetGame().GetCurrentCameraPosition();
-    vector rayEnd = rayStart + GetGame().GetCurrentCameraDirection() * 10000;
     vector hitPos;
-    vector hitNormal;
-    int hitComponentIndex;
-    DayZPhysics.RaycastRV(rayStart, rayEnd, hitPos, hitNormal, hitComponentIndex, NULL, NULL, COM_GetPB());
-
-    return hitPos;
+    if (COM_TryGetCursorPos(hitPos)) return hitPos;
+    PlayerBase player = COM_GetPB();
+    if (player) return player.GetPosition();
+    return vector.Zero;
 }
-
 static void COM_Message( string txt ) 
 {
     COM_GetMission().OnEvent(ChatMessageEventTypeID, new ChatMessageEventParams(CCDirect, "", txt, ""));
@@ -381,5 +385,6 @@ string COM_GetRandomChildFromBaseClass( string strConfigName, string strBaseClas
         }
     }
 
+    if (class_names.Count() == 0) return "";
     return class_names.GetRandomElement();
 }

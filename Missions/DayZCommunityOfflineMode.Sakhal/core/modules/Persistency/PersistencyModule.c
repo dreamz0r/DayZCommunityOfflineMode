@@ -24,6 +24,11 @@ class PersistencyModule extends Module
 	void ~PersistencyModule()
 	{
 		PersistencyPrint( "PersistencyModule::~PersistencyModule" );
+        GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Remove(this.SavePlayer);
+        GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Remove(this.CreatePlayerInt);
+        GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Remove(this.FinishLoadingInt);
+        GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Remove(this.RemoveEffects);
+        GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Remove(this.FixEscape);
 
 		CleanupCharacterSaving();
 		CleanupCharacterMenu();
@@ -42,22 +47,6 @@ class PersistencyModule extends Module
 		return m_sSave;
 	}
 	
-	override void Init() 
-	{
-		super.Init();
-
-		#ifdef MODULE_UIEXTENDER
-		UIExtender om = COM_GetModuleManager().GetModuleByName( "UIExtender" );
-
-		if ( om )
-		{
-			om.AddPauseButton( new CustomPauseButton( "SAVE CHARACTER", MODULE_PERSISTENCY_WIDGET_SAVE_CHARACTER, GetModuleType(), "OpenCharacterSaving" ), new OverrideValid(true, true), 2 );
-			om.AddPauseButton( new CustomPauseButton( "LOAD CHARACTER", MODULE_PERSISTENCY_WIDGET_LOAD_CHARACTER, GetModuleType(), "OpenCharacterLoading" ), new OverrideValid(true, true), 2 );
-		}
-		
-		#endif
-	}
-
 	override void onMissionLoaded()
 	{
 		PersistencyPrint("PersistencyModule::onMissionLoaded");
@@ -95,6 +84,7 @@ class PersistencyModule extends Module
 		if ( m_Scene )
 		{
 			delete m_Scene;
+            m_Scene = NULL;
 		}
 	}
 
@@ -106,7 +96,8 @@ class PersistencyModule extends Module
 		{
 			m_CharacterMenu.Close();
 
-			delete m_CharacterMenu;
+            // Close lets the UI manager release the menu safely.
+            m_CharacterMenu = NULL;
 		}
 	}
 	
@@ -119,7 +110,7 @@ class PersistencyModule extends Module
 
 		if ( COM_GetPB() )
 		{
-			COM_GetPB().SimulateDeath( false );
+			// Keep the current player alive until a replacement is ready.
 
 			if ( m_sCharacter != "" && m_sSave != "" )
 			{
@@ -149,11 +140,7 @@ class PersistencyModule extends Module
 			m_CharacterMenu = new COMCharacterMenu( this, true );
 		}
 
-		UIExtender om = COM_GetModuleManager().GetModuleByName( "UIExtender" );
-		if ( om )
-		{
-			om.GetPauseMenu().Close();
-		}
+        GetGame().GetUIManager().CloseMenu(MENU_INGAME);
 
 		GetGame().GetUIManager().ShowScriptedMenu( m_CharacterMenu , NULL );
 	}
@@ -169,130 +156,34 @@ class PersistencyModule extends Module
 			isLoadingSave = m_CharacterMenu.IsLoadingSave();
 		}
 
-		if ( !m_CharacterMenu ) 
-		{
-			m_CharacterMenu = new COMCharacterMenu( this, isLoadingSave );
-		} else 
-		{
-			CleanupCharacterMenu();
-		}
+        CleanupCharacterMenu();
+        m_CharacterMenu = new COMCharacterMenu(this, isLoadingSave);
 
-		UIExtender om = COM_GetModuleManager().GetModuleByName( "UIExtender" );
-		if ( om )
-		{
-			om.GetPauseMenu().Close();
-		}
+        GetGame().GetUIManager().CloseMenu(MENU_INGAME);
 
 		GetGame().GetUIManager().ShowScriptedMenu( m_CharacterMenu , NULL );
 	}
 	
-	#ifndef MODULE_UIEXTENDER
-	private bool CleanupCharacterSaving()
-	{
-		PersistencyPrint("PersistencyModule::CleanupCharacterSaving");
-		bool foundWidget = false;
-		
-		m_InGameMenu = GetGame().GetUIManager().FindMenu(MENU_INGAME);
-
-		if ( m_InGameMenu.IsInherited( CustomInGameMenu ) )
-		{
-			if (CustomInGameMenu.Cast( m_InGameMenu ).m_RightPanel.FindAnyWidgetById(MODULE_PERSISTENCY_WIDGET_SAVE_CHARACTER_PANEL))
-			{
-				foundWidget = true;
-			}
-		}
-
-		if ( m_CharacterSave || m_CharacterSaveWidget || foundWidget )
-		{
-			if ( m_InGameMenu.IsInherited( CustomInGameMenu ) && m_CharacterSaveWidget )
-			{
-				m_CharacterSaveWidget.Unlink();
-				delete m_CharacterSaveWidget;
-			} else {
-				GetGame().GetUIManager().HideScriptedMenu( m_CharacterSave );
-			}
-
-			return true;
-		}
-
-		return false;
-	}
-
-	void OpenCharacterSaving()
-	{
-		PersistencyPrint("PersistencyModule::OpenCharacterSaving");
-		bool foundWidget = false;
-
-		m_InGameMenu = GetGame().GetUIManager().FindMenu(MENU_INGAME);
-
-		if ( m_InGameMenu.IsInherited( CustomInGameMenu ) )
-		{
-			if (CustomInGameMenu.Cast( m_InGameMenu ).m_RightPanel.FindAnyWidgetById(MODULE_PERSISTENCY_WIDGET_SAVE_CHARACTER_PANEL))
-			{
-				foundWidget = true;
-			}
-		}
-
-		if ( m_CharacterSave || m_CharacterSaveWidget || foundWidget )
-		{
-			if ( m_InGameMenu.IsInherited( CustomInGameMenu ) && m_CharacterSaveWidget )
-			{
-				m_CharacterSaveWidget.Unlink();
-				delete m_CharacterSaveWidget;
-			} else {
-				GetGame().GetUIManager().HideScriptedMenu( m_CharacterSave );
-			}
-
-			delete m_CharacterSave;
-		} else {
-			m_CharacterSave = new COMCharacterSave( this );
-
-			if ( m_InGameMenu.IsInherited( CustomInGameMenu ) )
-			{
-				m_CharacterSaveWidget = m_CharacterSave.InitWithParent( CustomInGameMenu.Cast( m_InGameMenu ).m_RightPanel );
-				m_CharacterSaveWidget.SetUserID(MODULE_PERSISTENCY_WIDGET_SAVE_CHARACTER_PANEL);
-			} else {
-				GetGame().GetUIManager().ShowScriptedMenu( m_CharacterSave , m_InGameMenu );
-			}
-		}
-	}
-	#else
-	private bool CleanupCharacterSaving()
-	{
-		PersistencyPrint( "PersistencyModule::CleanupCharacterSaving" );
-		if (m_CharacterSave)
-		{			
-			GetGame().GetUIManager().HideScriptedMenu( m_CharacterSave );
-
-			delete m_CharacterSave;
-
-			return true;
-		}
-		return false;
-	}
-
-	void OpenCharacterSaving()
-	{
-		PersistencyPrint( "PersistencyModule::OpenCharacterSaving" );
-		m_InGameMenu = GetGame().GetUIManager().FindMenu(MENU_INGAME);
-
-		if ( m_CharacterSave ) 
-		{
-			CleanupCharacterSaving();
-		} else 
-		{
-			m_CharacterSave = new COMCharacterSave( this );
-
-			GetGame().GetUIManager().ShowScriptedMenu( m_CharacterSave , m_InGameMenu );
-		}
-	}
-	#endif
-	
+    private bool CleanupCharacterSaving()
+    {
+        if (!m_CharacterSave) return false;
+        GetGame().GetUIManager().HideScriptedMenu(m_CharacterSave);
+        delete m_CharacterSave;
+        m_CharacterSave = NULL;
+        return true;
+    }
+    void OpenCharacterSaving()
+    {
+        if (CleanupCharacterSaving()) return;
+        m_InGameMenu = GetGame().GetUIManager().FindMenu(MENU_INGAME);
+        m_CharacterSave = new COMCharacterSave(this);
+        GetGame().GetUIManager().ShowScriptedMenu(m_CharacterSave, m_InGameMenu);
+    }
 	void SavePlayer(string sSave) 
 	{
 		PersistencyPrint("PersistencyModule::SavePlayer");
 
-		if ( m_CanBeSaved ) {
+		if (m_CanBeSaved && COM_GetPB()) {
 			if ( sSave != "latest" )
 			{
 				m_sSave = sSave;
@@ -363,7 +254,14 @@ class PersistencyModule extends Module
 			oPlayer = CharacterLoad.LoadPlayer( m_sCharacter, m_sSave, false );
 		}
 
-		GetGame().SelectPlayer( NULL, oPlayer );
+		if (!oPlayer)
+        {
+            COM_Message("Character could not be loaded. Choose another save.");
+            return;
+        }
+        PlayerBase previous = COM_GetPB();
+        GetGame().SelectPlayer(NULL, oPlayer);
+        if (previous && previous != oPlayer) GetGame().ObjectDelete(previous);
 
 		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.FinishLoadingInt, 100, false);
 	}
@@ -384,7 +282,8 @@ class PersistencyModule extends Module
 		m_CanBeSaved = true;
 		m_CharacterIsLoaded = true;
 
-		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.SavePlayer, 1000, true, "latest");
+		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Remove(this.SavePlayer);
+        GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.SavePlayer, 1000, true, "latest");
 
 		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.CleanupCharacterMenu, 100, false);
 		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.CleanupScene, 250, false);

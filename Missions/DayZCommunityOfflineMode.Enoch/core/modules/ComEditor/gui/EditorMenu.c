@@ -29,7 +29,7 @@ class EditorMenu extends UIScriptedMenu
 
 	override Widget Init()
     {
-        layoutRoot = GetGame().GetWorkspace().CreateWidgets( "$CurrentDir:missions\\DayZCommunityOfflineMode.ChernarusPlus\\core\\modules\\ComEditor\\gui\\layouts\\EditorMenu.layout" );
+        layoutRoot = GetGame().GetWorkspace().CreateWidgets( "$CurrentDir:missions\\DayZCommunityOfflineMode.Enoch\\core\\modules\\ComEditor\\gui\\layouts\\EditorMenu.layout" );
 
 		m_ObjectButton   = ButtonWidget.Cast( layoutRoot.FindAnyWidget("objects_button") );
 		m_PositionButton = ButtonWidget.Cast( layoutRoot.FindAnyWidget("position_button") );
@@ -40,12 +40,12 @@ class EditorMenu extends UIScriptedMenu
 
 
 		// object menu
-		m_objectMenu   = GetGame().GetWorkspace().CreateWidgets( "$CurrentDir:missions\\DayZCommunityOfflineMode.ChernarusPlus\\core\\modules\\ComEditor\\gui\\layouts\\ObjectMenu.layout", layoutRoot );
-		m_weatherMenu  = GetGame().GetWorkspace().CreateWidgets( "$CurrentDir:missions\\DayZCommunityOfflineMode.ChernarusPlus\\core\\modules\\ComEditor\\gui\\layouts\\WeatherMenu.layout", layoutRoot );
-		m_positionMenu = GetGame().GetWorkspace().CreateWidgets( "$CurrentDir:missions\\DayZCommunityOfflineMode.ChernarusPlus\\core\\modules\\Admintool\\gui\\layouts\\PositionMenu.layout", layoutRoot );
-		m_gameMenu 	   = GetGame().GetWorkspace().CreateWidgets( "$CurrentDir:missions\\DayZCommunityOfflineMode.ChernarusPlus\\core\\modules\\ComEditor\\gui\\layouts\\GameMenu.layout", layoutRoot );
-		m_objectInfoMenu = GetGame().GetWorkspace().CreateWidgets( "$CurrentDir:missions\\DayZCommunityOfflineMode.ChernarusPlus\\core\\modules\\ComEditor\\gui\\layouts\\ObjectEditorInfo.layout", layoutRoot );
-		m_cameraMenu = GetGame().GetWorkspace().CreateWidgets( "$CurrentDir:missions\\DayZCommunityOfflineMode.ChernarusPlus\\core\\modules\\CameraTool\\gui\\layouts\\CameraSettings.layout", layoutRoot );
+		m_objectMenu   = GetGame().GetWorkspace().CreateWidgets( "$CurrentDir:missions\\DayZCommunityOfflineMode.Enoch\\core\\modules\\ComEditor\\gui\\layouts\\ObjectMenu.layout", layoutRoot );
+		m_weatherMenu  = GetGame().GetWorkspace().CreateWidgets( "$CurrentDir:missions\\DayZCommunityOfflineMode.Enoch\\core\\modules\\ComEditor\\gui\\layouts\\WeatherMenu.layout", layoutRoot );
+		m_positionMenu = GetGame().GetWorkspace().CreateWidgets( "$CurrentDir:missions\\DayZCommunityOfflineMode.Enoch\\core\\modules\\Admintool\\gui\\layouts\\PositionMenu.layout", layoutRoot );
+		m_gameMenu 	   = GetGame().GetWorkspace().CreateWidgets( "$CurrentDir:missions\\DayZCommunityOfflineMode.Enoch\\core\\modules\\ComEditor\\gui\\layouts\\GameMenu.layout", layoutRoot );
+		m_objectInfoMenu = GetGame().GetWorkspace().CreateWidgets( "$CurrentDir:missions\\DayZCommunityOfflineMode.Enoch\\core\\modules\\ComEditor\\gui\\layouts\\ObjectEditorInfo.layout", layoutRoot );
+		m_cameraMenu = GetGame().GetWorkspace().CreateWidgets( "$CurrentDir:missions\\DayZCommunityOfflineMode.Enoch\\core\\modules\\CameraTool\\gui\\layouts\\CameraSettings.layout", layoutRoot );
 
         return layoutRoot;
 	}
@@ -72,7 +72,7 @@ class EditorMenu extends UIScriptedMenu
 
         ObjectEditor.Cast( COM_GetModuleManager().GetModule( ObjectEditor )).EditorState( false );
 
-        if ( !CameraTool.Cast(COM_GetModuleManager().GetModule(CameraTool)).IsUsingCamera() ) 
+        if ( COM_GetPB() && !CameraTool.Cast(COM_GetModuleManager().GetModule(CameraTool)).IsUsingCamera() ) 
         {
 			COM_GetPB().GetInputController().OverrideMovementSpeed( false, 0 );
         }
@@ -99,6 +99,7 @@ class EditorMenu extends UIScriptedMenu
 	        	}
 
 	    		Object obj = GetGame().CreateObject( strSelection, COM_GetPointerPos(), true, ai );
+                if (!obj) { COM_Message("Could not spawn: " + strSelection); return true; }
 	    		obj.PlaceOnSurface(); // reeeeeeeeeeeee
 	    		COM_ForceTargetCollisionUpdate( obj );
 	    		ObjectEditor.Cast(COM_GetModuleManager().GetModule( ObjectEditor )).SelectObject( obj );

@@ -2,6 +2,11 @@
 
 ## 2026-10-30
 
+### Revision 3
+
+#### Changed
+- Simplified README to description, installation, mod usage, launcher settings, hive settings, keybinds and current COM features.
+
 ### Revision 2
 
 #### Changed

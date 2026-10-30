@@ -4,3 +4,4 @@
 
 #include "$CurrentDir:missions\\DayZCommunityOfflineMode.Nasdara\\core\\CommunityOfflineClient.c"
 #include "$CurrentDir:missions\\DayZCommunityOfflineMode.Nasdara\\core\\CommunityOfflineServer.c"
+#include "$CurrentDir:missions\\DayZCommunityOfflineMode.Nasdara\\core\\COMInGameMenu.c"

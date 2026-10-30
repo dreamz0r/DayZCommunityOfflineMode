@@ -23,8 +23,6 @@ class COMKeyBinds extends Module
 	{
         if (!COM_GetPB()) return;
 	    UpdateAutoWalk();
-
-	    UpdateGodMode();
 	}
 	
 	override void RegisterKeyMouseBindings() 
@@ -33,6 +31,7 @@ class COMKeyBinds extends Module
 		KeyMouseBinding toggleCOMEditor = new KeyMouseBinding( GetModuleType() , "ShowCOMEditor" ,  "Opens the COM Editor."           );
 		KeyMouseBinding teleport	    = new KeyMouseBinding( GetModuleType() , "TeleportCursor",  "Teleport to cursor position."    );
 		KeyMouseBinding reload          = new KeyMouseBinding( GetModuleType() , "Reload"        ,  "Instantly reloads mag."		  );
+        KeyMouseBinding teleportH = new KeyMouseBinding(GetModuleType(), "TeleportCursorH", "Teleport to mouse cursor (H).");
         KeyMouseBinding spawnZ          = new KeyMouseBinding( GetModuleType() , "SpawnZ"        ,  "Spawns infected."                );
         KeyMouseBinding hideHud         = new KeyMouseBinding( GetModuleType() , "HideHud"       ,  "Hides ui completely."            );
         KeyMouseBinding printPlayer     = new KeyMouseBinding( GetModuleType() , "PrintPlayer"   ,  "Print current player position."  );
@@ -42,21 +41,26 @@ class COMKeyBinds extends Module
 		toggleCursor   .AddBinding( "kU" );
 		toggleCOMEditor.AddBinding( "kY" );
 		teleport       .AddBinding( "kEnd" );
+        teleportH.AddBinding("kH");
 		reload         .AddBinding( "kR" );
         spawnZ         .AddBinding( "kO" );
         hideHud        .AddBinding( "kHome" );
         printPlayer    .AddBinding( "kP" );
-        autoRun        .AddBinding( "kX" );
+        autoRun        .AddBinding( "kZ" );
 //        keyFrame       .AddBinding( "kPrior" );
 
 		RegisterKeyMouseBinding( toggleCursor );
 		RegisterKeyMouseBinding( toggleCOMEditor );
 		RegisterKeyMouseBinding( teleport );
+        RegisterKeyMouseBinding(teleportH);
 		RegisterKeyMouseBinding( reload );
         RegisterKeyMouseBinding( spawnZ );
         RegisterKeyMouseBinding( hideHud );
         RegisterKeyMouseBinding( printPlayer );
         RegisterKeyMouseBinding( autoRun );
+        // Clear earlier COM autorun alternatives, including the old X binding.
+        UAInput autoRunInput = GetUApi().GetInputByName(autoRun.GetUAInputName());
+        if (autoRunInput) { autoRunInput.ClearBinding(); autoRunInput.BindCombo("kZ"); }
 //        RegisterKeyMouseBinding( keyFrame );
 	}
 
@@ -87,42 +91,47 @@ class COMKeyBinds extends Module
         GetGame().GetUIManager().EnterScriptedMenu(EditorMenu.MENU_ID, NULL);
     }
 
-    void TeleportCursor()
+    void TeleportCursorH()
     {
-        Print( "COMKeyBinds::TeleportCursor()" );
-
-//		if ( CameraTool.Cast( m_Mission.GetModule( CameraTool ) ).IsUsingCamera() ) //Todo renable after module manager is done
-//		{
-//			COM_GetPB().MessageStatus( "You can not teleport while you are inside the freecam!" );
-//			return;
-//		}
-		
-        if (!COM_GetPB()) return;
-        vector hitPos;
-        if (!COM_TryGetCursorPos(hitPos)) { COM_Message("No surface under the cursor."); return; }
-
-        float distance = vector.Distance( COM_GetPB().GetPosition(), hitPos );
-
-        if ( distance < 5000 )
-        {
-            EntityAI oVehicle = COM_GetPB().GetDrivingVehicle();
-
-            if( oVehicle )
-            {
-                COM_GetPB().MessageStatus( "Get out of the vehicle first!" );
-            }
-            else
-            {
-                COM_GetPB().SetPosition( hitPos );
-                COM_GetPB().MessageStatus( "Teleported!" );
-            }
-        }
-        else
-        {
-            COM_GetPB().MessageStatus( "Distance for teleportation is too far!" );
-        }
+        TeleportCursor(false);
     }
 
+    void TeleportCursor(bool announce = true)
+    {
+        if (!COM_GetPB() || GetGame().GetUIManager().GetMenu()) return;
+        vector hitPos;
+        if (!TryGetTeleportCursor(hitPos)) { COM_Message("No surface under the cursor."); return; }
+        TeleportToPosition(hitPos, false, announce);
+    }
+
+    bool TryGetTeleportCursor(out vector hitPos)
+    {
+        if (!GetGame().GetUIManager().IsCursorVisible()) return COM_TryGetCursorPos(hitPos);
+        hitPos = vector.Zero;
+        if (!COM_GetPB()) return false;
+        vector from = GetGame().GetCurrentCameraPosition();
+        vector to = from + GetGame().GetPointerDirection() * 10000;
+        vector normal;
+        int component;
+        return DayZPhysics.RaycastRV(from, to, hitPos, normal, component, NULL, NULL, COM_GetPB());
+    }
+
+    bool TeleportToPosition(vector destination, bool snapToSurface = false, bool announce = true)
+    {
+        PlayerBase player = COM_GetPB();
+        if (!player || !player.IsAlive()) return false;
+        if (player.GetCommand_Vehicle()) { COM_Message("Get out of the vehicle first!"); return false; }
+        float worldSize = GetGame().GetWorld().GetWorldSize();
+        if (destination[0] < 0 || destination[2] < 0 || destination[0] >= worldSize || destination[2] >= worldSize)
+        {
+            COM_Message("Teleport destination is outside the map.");
+            return false;
+        }
+        if (snapToSurface) destination[1] = GetGame().SurfaceY(destination[0], destination[2]);
+        player.SetPosition(destination);
+        if (announce) COM_Message("Teleported!");
+        return true;
+    }
     void RefillWeapon(Weapon_Base weapon, bool chamber = true)
     {
         if (!weapon) return;
@@ -177,12 +186,12 @@ class COMKeyBinds extends Module
 
     void AutoRun()
     {
-        if (!COM_GetPB()) return;
+        if (!COM_GetPB() || GetGame().GetUIManager().GetMenu()) return;
+        CameraTool camera = CameraTool.Cast(COM_GetModuleManager().GetModule(CameraTool));
+        if (camera && camera.IsUsingCamera()) return;
         if( m_nAutoWalkMode && !COM_SHIFT() && !COM_CTRL() )
         {
-            m_nAutoWalkMode = 0;
-            COM_GetPB().GetInputController().OverrideMovementSpeed( false, 0 );
-            COM_GetPB().GetInputController().OverrideMovementAngle( false, 0 );
+            CancelAutoRun();
         }
         else
         {
@@ -201,16 +210,33 @@ class COMKeyBinds extends Module
         }
     }
 
+    bool IsAutoRunning() { return m_nAutoWalkMode > 0; }
+    void CancelAutoRun()
+    {
+        if (!m_nAutoWalkMode) return;
+        m_nAutoWalkMode = 0;
+        PlayerBase player = COM_GetPB();
+        CameraTool camera = CameraTool.Cast(COM_GetModuleManager().GetModule(CameraTool));
+        if (!player || (camera && camera.IsUsingCamera())) return;
+        player.GetInputController().OverrideMovementSpeed(false, 0);
+        player.GetInputController().OverrideMovementAngle(false, 0);
+    }
+    bool HasManualMovementInput()
+    {
+        // Read physical movement actions, not the autorun movement override.
+        UAInput forward = GetUApi().GetInputByName("UAMoveForward");
+        UAInput backward = GetUApi().GetInputByName("UAMoveBack");
+        return (forward && forward.LocalValue() > 0) || (backward && backward.LocalValue() > 0);
+    }
     void UpdateAutoWalk()
     {
         PlayerBase player = COM_GetPB();
         if (!player) return;
         CameraTool camera = CameraTool.Cast(COM_GetModuleManager().GetModule(CameraTool));
         if (camera && camera.IsUsingCamera()) return;
-        if (m_nAutoWalkMode > 0 && EditorMenu.Cast(GetGame().GetUIManager().GetMenu()))
+        if (m_nAutoWalkMode > 0 && (!player.IsAlive() || GetGame().GetUIManager().GetMenu() || HasManualMovementInput()))
         {
-            player.GetInputController().OverrideMovementSpeed(true, 0);
-            player.GetInputController().OverrideMovementAngle(false, 0);
+            CancelAutoRun();
             return;
         }
         if( m_nAutoWalkMode > 0 )
@@ -232,25 +258,4 @@ class COMKeyBinds extends Module
         }
     }
 
-    void UpdateGodMode()
-    {
-        // just putting this here for now
-        if ( m_COM_GodMode ) // located in staticfunctions
-        {
-            COM_GetPB().SetHealth( COM_GetPB().GetMaxHealth( "", "" ) );
-            COM_GetPB().SetHealth( "","Blood", COM_GetPB().GetMaxHealth( "", "Blood" ) );
-            COM_GetPB().SetHealth( "","Shock", COM_GetPB().GetMaxHealth( "", "Shock" ) );
-
-            //GetPlayer().GetStaminaHandler().SyncStamina(1000, 1000);
-            COM_GetPB().GetStatStamina().Set(COM_GetPB().GetStaminaHandler().GetStaminaCap());
-            COM_GetPB().GetStatEnergy().Set(1000);
-            COM_GetPB().GetStatWater().Set(1000);
-//            COM_GetPB().GetStatStomachVolume().Set(300);
-//            COM_GetPB().GetStatStomachWater().Set(300);
-//            COM_GetPB().GetStatStomachEnergy().Set(300);
-            COM_GetPB().GetStatHeatComfort().Set(0);
-
-            RefillWeapon(Weapon_Base.Cast(COM_GetPB().GetHumanInventory().GetEntityInHands()), false);
-        }
-    }
 }

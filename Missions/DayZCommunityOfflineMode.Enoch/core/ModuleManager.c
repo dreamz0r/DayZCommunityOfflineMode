@@ -3,6 +3,8 @@
 #include "$CurrentDir:missions\\DayZCommunityOfflineMode.Enoch\\core\\Module.c"
 #include "$CurrentDir:missions\\DayZCommunityOfflineMode.Enoch\\core\\KeyMouseBinding.c"
 
+#include "$CurrentDir:missions\\DayZCommunityOfflineMode.Enoch\\core\\COMGameplayToggles.c"
+
 #ifdef COM_MODULES_OLDLOADING
 #include "$CurrentDir:missions\\DayZCommunityOfflineMode.Enoch\\core\\modules\\Admintool\\module.c"
 #include "$CurrentDir:missions\\DayZCommunityOfflineMode.Enoch\\core\\modules\\CameraTool\\module.c"
@@ -47,6 +49,7 @@ class ModuleManager
     void RegisterModules()
     {
         m_Modules = new array< ref Module >;
+        RegisterModule(new COMGameplayToggles);
 
         #ifdef MODULE_COM_EDITOR
         RegisterModule( new ObjectEditor );

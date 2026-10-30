@@ -4,3 +4,4 @@
 
 #include "$CurrentDir:missions\\DayZCommunityOfflineMode.Enoch\\core\\CommunityOfflineClient.c"
 #include "$CurrentDir:missions\\DayZCommunityOfflineMode.Enoch\\core\\CommunityOfflineServer.c"
+#include "$CurrentDir:missions\\DayZCommunityOfflineMode.Enoch\\core\\COMInGameMenu.c"

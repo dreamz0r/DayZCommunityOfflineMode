@@ -82,7 +82,7 @@ The project root contains `LauncherSettings.json`. Its initial settings are:
 Place complete mod folders inside `Mods`, for example `Mods\@CF\Addons\...` and `Mods\@MyMod\Addons\...`. Keep each mod's normal folder structure. Mods stay in this folder; the launcher passes their absolute paths to DayZ. This does not compile or pack mod source into PBOs.
 
 - `EnabledMods: null` loads every immediate subfolder containing an `Addons` folder, in alphabetical order.
-- `EnabledMods: []` loads no optional mods.
+- `EnabledMods: []` loads no optional mods. COM support and the selected bundled English-name add-on are managed separately.
 - `EnabledMods: ["@CF", "@MyMod"]` loads only those mods, in the order listed. List dependencies first. Absolute mod paths are also accepted.
 - Change `ModsPath` to use another folder. Relative paths are resolved from the settings file; names in `EnabledMods` are resolved from `ModsPath`.
 - Sakhal and Nasdara require their corresponding installed DayZ DLC. No Namalsk or Workshop map dependency is used.
@@ -98,7 +98,7 @@ To preview the selected mods and command without copying files or starting DayZ:
 Extra game arguments can be passed to the batch launcher, such as `-window`. Configure mods through `EnabledMods` rather than adding a second `-mod` argument. If the project is moved, use its root deploy launcher; update the project fallback path in the mission batch files if you also use those directly.
 # Installation
 
-Use the complete current project folder, including `LaunchOfflineMode.ps1`, `LauncherSettings.json`, the four root `deploy*.bat` launchers, `Missions`, and `Mods`. These instructions apply to this modified version of Community Offline Mode.
+Use the complete current project folder, including `LaunchOfflineMode.ps1`, `LauncherSettings.json`, `Tools`, `Support`, `EnglishMapNames`, the four root `deploy*.bat` launchers, `Missions`, and `Mods`. These instructions apply to this modified version of Community Offline Mode.
 
 ## Requirements
 
@@ -132,6 +132,10 @@ Use the complete current project folder, including `LaunchOfflineMode.ps1`, `Lau
 
 Each launch copies the current source for that map into `GamePath\Missions\DayZCommunityOfflineMode.<terrain>` and starts the regular DayZ client directly in the offline environment with your selected mods. Mods remain in `ModsPath`. Livonia uses the internal terrain name `Enoch`; Chernarus uses `ChernarusPlus`.
 
+English map labels are enabled by default and bundled in `EnglishMapNames\@COMEnglishMapNames_<terrain>`. The launcher loads the selected map's add-on relative to the project root. Copy the complete project to share it; no external translation folder, generated-data path or build step is required. Set `EnglishMapNames` to `false` to use the original labels. The editable source table and maintenance builder are included, and game terrain files remain unchanged. The launcher also builds/loads the included map and ammunition support sources automatically.
+
+After dying, choose **Respawn** in the pause menu. This replaces the player and restores the starting kit without rebuilding the world or economy. Repeated button presses are coalesced; restarting while alive also replaces the character. To reload the whole world, exit and launch the mission again.
+
 Deployment preserves existing mission storage and does not force-close running DayZ processes. Character-save persistence is disabled: a new session creates the configured military starting character. Each map has its own economy storage.
 
 To check the configured paths, selected mods and launch command without copying mission files or starting DayZ, run a root launcher with `-DryRun`, for example:
@@ -163,7 +167,7 @@ All four maps use the same `core/StartingLoadout.c`. The kit is equipped immedia
 - **M4A1 on Shoulder:** green MP stock, green RIS handguard, 6x ACOG, weapon light, NATO suppressor, full 60-round magazine and chambered round.
 - **SVD on the second shoulder (Melee slot):** powered PSO-1, Eastern suppressor, full 10-round magazine and chambered round.
 - Fully equipped and loaded FNX-45 in the vest holster and Glock in the belt holster, with compatible optics, lights, suppressors and charged batteries.
-- Exactly one full spare magazine per weapon and one full loose-ammo stack per caliber (5.56x45, 7.62x54, .45 ACP, 9x19). Four spare batteries, spare filters, powered rangefinder and compass. No rifle wraps, food, or ordinary drinks. Two full water canteens: one on the belt and one in cargo.
+- Exactly one full spare magazine per weapon and one full loose-ammo stack per caliber (5.56x45, 7.62x54, .45 ACP, 9x19). Powered rangefinder and compass. No loose batteries, spare filters, rifle wraps, food, or ordinary drinks. One full water canteen in the belt attachment slot; one filter attached to the mask.
 - One each of all nine vanilla repair types: weapon cleaning kit, sewing kit, leather sewing kit, whetstone, duct tape, tire repair kit, electronics repair kit, epoxy putty and blowtorch with a full gas canister.
 - One each: bandage dressing, morphine, epinephrine, PO-X antidote, saline IV, tetracycline, charcoal, painkillers, vitamins, chelating tablets, purification tablets, iodine, disinfectant spray and alcohol tincture. Tablet bottles and other consumables start at full quantity.
 
@@ -181,12 +185,28 @@ All equipment starts pristine and dry. Quantities, magazines, ammo stacks and ba
 | 8 | Compass |
 | 9 | Spare 60-round M4 magazine |
 | 0 | Spare SVD magazine |
+## Scripts in the G menu
+
+Open the COM toolbar with **Y**, then choose **G**. Its Scripts panel contains three independent checkboxes:
+
+- **God mode** prevents player damage without changing nutrition, ammo or stamina.
+- **Infinite stamina** keeps stamina full and disables depletion. Turning it off removes COM's modifier and restores the other stamina modifiers.
+- **Unlimited ammo** keeps the held weapon's existing magazine/internal magazine full, including after automatic cycling feeds the next round. Weapons still need their normal magazine/chamber setup. Weapon and suppressor wear, overheating, condition indicators and jams retain vanilla behavior; ammo refills never repair equipment.
+
+Toggles remain active with the menu closed, carry over to an in-place respawn and reset with a new mission session. The separate PL player editor has been removed. No VPP or CF dependency is required; the current VPP reference sources are under `P:\VPP`.
+
+The teleport map window is 25% smaller in width and height, with its center preserved. It uses DayZ's native terrain/satellite renderer with VPP-style detail and zoom settings. It uses the installed terrain's full available detail rather than an exported map image. The title reports whether the bundled English labels are loaded. Keep `EnglishMapNames: true` and restart through a root deploy launcher after updates; directly starting an old game command can omit the map add-ons.
+
+The small runtime support add-on is built automatically from `Support\@COMSupport` by `Tools\Build-COMSupport.ps1`, using only Windows PowerShell. Generated files stay outside the source project: this machine uses `D:\Codex\OfflineMode-Support`; machines without `D:\Codex` use their local application-data cache. The project contains all required sources, and no VPP files or external translation files are needed.
+
+COM blocks character actions, movement and aiming while its toolbar or windows are open. Opening it stops autorun and interrupts an ongoing action; closing restores normal controls.
+
 # Controls
-* Y (Z for QWERTZ-Keyboard) - Open the COM toolbar menu.
-* X - Toggle Autojog/walk/run
-* X + SHIFT - Enable Autorun (Just X to disable it again)
-* X + CTRL - Enable Autowalk (Just X to disable it again)
-* END - Teleport at the position you are looking at
+* Y - Open the COM toolbar menu. Choose MP for the teleport map; double-click to teleport. City, village and other location names use smooth white text; only your player marker is shown. Escape closes the map first.
+* Z - Toggle autojog; press Z again to stop. Forward/backward movement (W/S by default) or opening COM also stops autorun.
+* Z + SHIFT - Enable autorun/sprint (Z to stop).
+* Z + CTRL - Enable autowalk (Z to stop).
+* H / END - Teleport to the mouse cursor when visible, otherwise the crosshair. H and map teleports are silent on success.
 * O - Spawn a random infected (Zombies)
 * O + CTRL - Spawn a wolf (Agressive and will fight both players and infected)
 * O + SHIFT - Spawn a random animal

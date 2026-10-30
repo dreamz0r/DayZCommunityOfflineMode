@@ -117,17 +117,13 @@ static void COM_EquipStartingLoadout(PlayerBase player)
     COM_LoadoutCargo(player, "Mag_Glock_15Rnd");
     TStringArray ammunition = {"Ammo_556x45", "Ammo_762x54", "Ammo_45ACP", "Ammo_9x19"};
     foreach (string ammo : ammunition) COM_LoadoutCargo(player, ammo);
-    for (int battery = 0; battery < 4; battery++) COM_LoadoutCargo(player, "Battery9V");
-    COM_LoadoutCargo(player, "GasMask_Filter");
-    COM_LoadoutCargo(player, "GasMask_Filter");
 
     // One full package/item of each usable medicine and wound-treatment supply.
     EntityAI bandage = COM_LoadoutCargo(player, "BandageDressing");
     TStringArray medicines = {"Morphine", "Epinephrine", "AntiChemInjector", "SalineBagIV", "TetracyclineAntibiotics", "CharcoalTablets", "PainkillerTablets", "VitaminBottle", "ChelatingTablets", "PurificationTablets", "IodineTincture", "DisinfectantSpray", "DisinfectantAlcohol"};
     foreach (string medicine : medicines) COM_LoadoutCargo(player, medicine);
 
-    // Water only: one canteen on the belt and one additional canteen in cargo.
-    COM_LoadoutCargo(player, "Canteen");
+    // Water only: the canteen is attached to the belt; no loose spares.
     EntityAI rangefinder = COM_LoadoutCargo(player, "Rangefinder");
     EntityAI compass = COM_LoadoutCargo(player, "Compass");
     COM_LoadoutRefill(player);

@@ -1,5 +1,6 @@
 {
   "GamePath": "D:\\SteamLibrary\\steamapps\\common\\DayZ",
   "ModsPath": "P:\\DayZCommunityOfflineMode\\Mods",
-  "EnabledMods": null
+  "EnabledMods": null,
+  "EnglishMapNames": true
 }

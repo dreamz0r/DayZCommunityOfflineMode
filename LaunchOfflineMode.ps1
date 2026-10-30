@@ -60,6 +60,24 @@ if ($world -in @('Sakhal', 'Nasdara')) {
         throw "Terrain data missing for $world. Install its matching DayZ DLC in the configured GamePath."
     }
 }
+# Build the tiny runtime add-on from the included source; generated files stay outside the project.
+# Existing D:\Codex is the local work/output folder; other machines use their local cache.
+$cacheRoot=Join-Path $env:LOCALAPPDATA 'DayZCommunityOfflineMode\Runtime'
+if(Test-Path -LiteralPath 'D:\Codex' -PathType Container){$cacheRoot='D:\Codex\OfflineMode-Support'}
+$supportBuilder=Join-Path $PSScriptRoot 'Tools\Build-COMSupport.ps1'
+$supportMod=& $supportBuilder -OutputRoot $cacheRoot -DryRun:$DryRun
+if(!$DryRun){Assert-ModPath $supportMod}
+if(!$mods.Contains($supportMod)){$mods.Add($supportMod)}
+$englishNames = $true
+if ($null -ne $config.EnglishMapNames) { $englishNames = [bool]$config.EnglishMapNames }
+if ($englishNames) {
+    $nameMod = Join-Path (Join-Path $PSScriptRoot 'EnglishMapNames') ('@COMEnglishMapNames_' + $world)
+    Assert-ModPath $nameMod
+    if (!(Test-Path -LiteralPath (Join-Path $nameMod ('Addons\COMEnglishMapNames_' + $world + '.pbo')) -PathType Leaf)) {
+        throw "Bundled English map names missing for $world. Restore the EnglishMapNames folder from the complete project."
+    }
+    if (!$mods.Contains($nameMod)) { $mods.Add($nameMod) }
+}
 $missionName = 'DayZCommunityOfflineMode.' + $world
 $source = Join-Path $PSScriptRoot ('Missions\' + $missionName)
 $destination = Join-Path $gameRoot ('Missions\' + $missionName)

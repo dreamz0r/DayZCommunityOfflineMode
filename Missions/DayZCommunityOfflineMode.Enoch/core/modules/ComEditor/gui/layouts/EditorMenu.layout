@@ -132,6 +132,52 @@ FrameWidgetClass EditorMenu
 					}
 				}
 
+				PanelWidgetClass map_button_bkg 
+				{
+					visible 1
+					color 0 0 0 0.25
+					position 0.1 225
+					size 50 50 
+					halign left_ref
+					valign top_ref
+					hexactpos 0
+					vexactpos 1
+					hexactsize 1
+					vexactsize 1
+					style rover_sim_colorable
+				    {
+						ButtonWidgetClass map_button
+						{
+							color 1 0 0 1
+							position 0 0
+							size 50 50
+							hexactsize 1
+							vexactsize 1
+							"no focus" 1
+							{
+								TextWidgetClass map_button_text
+								{
+									ignorepointer 1
+									position 0 0
+									size 1 1
+									halign center_ref
+									valign center_ref
+									hexactsize 0
+									vexactsize 0
+									text "MP"
+									font "gui/fonts/Metron-Bold58"
+								   "exact text" 1
+								   "text halign" center
+								   "text valign" center
+								   "exact text size" 32
+								}
+							}
+						}
+					}
+				}
+
+				
+
 				PanelWidgetClass weather_button_bkg 
 				{
 					visible 1

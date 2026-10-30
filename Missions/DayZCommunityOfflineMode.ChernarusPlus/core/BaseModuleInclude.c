@@ -4,3 +4,4 @@
 
 #include "$CurrentDir:missions\\DayZCommunityOfflineMode.ChernarusPlus\\core\\CommunityOfflineClient.c"
 #include "$CurrentDir:missions\\DayZCommunityOfflineMode.ChernarusPlus\\core\\CommunityOfflineServer.c"
+#include "$CurrentDir:missions\\DayZCommunityOfflineMode.ChernarusPlus\\core\\COMInGameMenu.c"

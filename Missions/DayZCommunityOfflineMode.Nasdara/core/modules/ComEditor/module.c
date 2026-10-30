@@ -10,6 +10,7 @@
     Include of all .c files that belong to this module
 */
 #ifdef COM_MODULES_OLDLOADING
+#include "$CurrentDir:missions\\DayZCommunityOfflineMode.Nasdara\\core\\modules\\ComEditor\\gui\\COMMapMenu.c"
 #include "$CurrentDir:missions\\DayZCommunityOfflineMode.Nasdara\\core\\modules\\ComEditor\\ObjectEditor.c"
 #include "$CurrentDir:missions\\DayZCommunityOfflineMode.Nasdara\\core\\modules\\ComEditor\\gui\\EditorMenu.c"
 #include "$CurrentDir:missions\\DayZCommunityOfflineMode.Nasdara\\core\\modules\\ComEditor\\gui\\ObjectMenu.c"

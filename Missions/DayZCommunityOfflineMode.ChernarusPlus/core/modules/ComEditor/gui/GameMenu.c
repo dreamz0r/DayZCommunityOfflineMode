@@ -21,23 +21,32 @@ class GameMenu extends PopupMenu
         m_gameScriptList.AddItem( "Spawn Sarka",     new Param1< string >( "SpawnSarka" ),     0 );
         m_gameScriptList.AddItem("Spawn M3S", new Param1<string>("SpawnV3SCargo"), 0);
 
-		CheckBoxWidget checkBoxGodmode = CheckBoxWidget.Cast(GetGame().GetWorkspace().CreateWidgets( checkboxLayout, m_checkboxPanel ));
-		checkBoxGodmode.SetName( "Godmode" );
-		checkBoxGodmode.SetText( "Godmode" );
-
-//		CheckBoxWidget checkBoxAiming = CheckBoxWidget.Cast(GetGame().GetWorkspace().CreateWidgets( checkboxLayout, m_checkboxPanel ));
-//		checkBoxAiming.SetName("OldAiming");
-//		checkBoxAiming.SetText("Old Aiming");
-//
-//		CheckBoxWidget checkBoxLaser = CheckBoxWidget.Cast(GetGame().GetWorkspace().CreateWidgets( checkboxLayout, m_checkboxPanel ));
-//		checkBoxLaser.SetName("LaserPointer");
-//		checkBoxLaser.SetText("Laser Pointer");
-
-		checkBoxMap.Insert( checkBoxGodmode.GetName(), "ToggleGodMode" );
-//		checkBoxMap.Insert( checkBoxAiming.GetName(), "ToggleOldAiming" );
-//		checkBoxMap.Insert( checkBoxLaser.GetName(), "ToggleLaser" );
+        AddToggle("Godmode", "God mode", "ToggleGodMode");
+        AddToggle("InfiniteStamina", "Infinite stamina", "ToggleInfiniteStamina");
+        AddToggle("UnlimitedAmmo", "Unlimited ammo", "ToggleUnlimitedAmmo");
 	}
 
+    void AddToggle(string name, string label, string function)
+    {
+        CheckBoxWidget checkbox = CheckBoxWidget.Cast(GetGame().GetWorkspace().CreateWidgets(checkboxLayout, m_checkboxPanel));
+        checkbox.SetName(name);
+        checkbox.SetText(label);
+        checkBoxMap.Insert(name, function);
+    }
+    bool ToggleInfiniteStamina(CheckBoxWidget widget)
+    {
+        COMGameplayToggles tools = COMGameplayToggles.Cast(COM_GetModuleManager().GetModule(COMGameplayToggles));
+        if (!tools) return false;
+        if (widget) tools.SetInfiniteStamina(widget.IsChecked());
+        return tools.GetInfiniteStamina();
+    }
+    bool ToggleUnlimitedAmmo(CheckBoxWidget widget)
+    {
+        COMGameplayToggles tools = COMGameplayToggles.Cast(COM_GetModuleManager().GetModule(COMGameplayToggles));
+        if (!tools) return false;
+        if (widget) tools.SetUnlimitedAmmo(widget.IsChecked());
+        return tools.GetUnlimitedAmmo();
+    }
 	override void OnShow()
 	{
 		// Update checkbox checked
@@ -71,18 +80,15 @@ class GameMenu extends PopupMenu
 		return m_COM_OldAiming;
 	}
 
-	bool ToggleGodMode( CheckBoxWidget widget ) 
-	{
-		if ( widget ) 
-		{
-			m_COM_GodMode = !m_COM_GodMode;
+	bool ToggleGodMode(CheckBoxWidget widget)
+    {
+        COMGameplayToggles tools = COMGameplayToggles.Cast(COM_GetModuleManager().GetModule(COMGameplayToggles));
+        if (!tools) return false;
+        if (widget) tools.SetGodMode(widget.IsChecked());
+        return tools.GetGodMode();
+    }
 
-			COM_GetPB().SetAllowDamage( !m_COM_GodMode );
-		}
-		return m_COM_GodMode;
-	}
-
-	bool ToggleLaser( CheckBoxWidget widget ) 
+    bool ToggleLaser( CheckBoxWidget widget ) 
 	{
 		if ( widget ) 
 		{
